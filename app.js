@@ -293,3 +293,30 @@ document.addEventListener('DOMContentLoaded', () => {
     window.app = new InvoiceApp();
     window.loadPage = (page) => window.app.loadPage(page);
 });
+
+// Make app globally available
+window.InvoiceApp = InvoiceApp;
+
+// Auto-initialize if DOM is already loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initApp, 100);
+    });
+} else {
+    setTimeout(initApp, 100);
+}
+
+function initApp() {
+    if (typeof InvoiceApp !== 'undefined') {
+        window.app = new InvoiceApp();
+        window.loadPage = (page) => window.app.loadPage(page);
+        
+        // Check URL hash
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            window.app.loadPage(hash);
+        }
+    } else {
+        console.error('InvoiceApp not loaded. Check script loading order.');
+    }
+}
