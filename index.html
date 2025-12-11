@@ -134,6 +134,9 @@
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- App stub (prevents early clicks from failing) -->
+    <script src="js/app-stub.js"></script>
+
     <!-- Loader script: dynamically injects the split JS files in order -->
     <script src="js/loader.js"></script>
 
@@ -151,7 +154,6 @@
         // Once app is ready loader/injected scripts will override loadPage and initialize functions.
         window.loadPage = window.loadPage || function(page) {
             console.warn('App not ready yet. Attempted to load page:', page);
-            // store the desired page; injected app should read location.hash on init
             window.location.hash = page;
         };
 
