@@ -67,9 +67,9 @@ class InvoiceApp {
         if (window.FormsPage) {
             this.formsPage = new FormsPage(this);
         }
-         if (window.BillingPage) {
-        this.billingPage = new BillingPage(this);
-    }
+        if (window.BillingPage) {
+            this.billingPage = new BillingPage(this);
+        }
     }
 
     async loadInitialData() {
@@ -109,21 +109,21 @@ class InvoiceApp {
             this.showLoadingState(page);
             
             // Load page content based on module
-               let html = '';
+            let html = '';
         
-        if (page === 'dashboard' && this.dashboardPage) {
-            html = await this.dashboardPage.render();
-        } else if (page === 'clients' && this.clientsPage) {
-            html = await this.clientsPage.render();
-        } else if (page === 'invoices' && this.invoicesPage) {
-            html = await this.invoicesPage.render();
-        } else if (page === 'billing' && this.billingPage) {
-            html = await this.billingPage.render();
-        } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage) {
-            html = await this.formsPage.render(page);
-        } else {
-            html = this.loadFallbackPage(page);
-        }
+            if (page === 'dashboard' && this.dashboardPage) {
+                html = await this.dashboardPage.render();
+            } else if (page === 'clients' && this.clientsPage) {
+                html = await this.clientsPage.render();
+            } else if (page === 'invoices' && this.invoicesPage) {
+                html = await this.invoicesPage.render();
+            } else if (page === 'billing' && this.billingPage) {
+                html = await this.billingPage.render();
+            } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage) {
+                html = await this.formsPage.render(page);
+            } else {
+                html = this.loadFallbackPage(page);
+            }
             
             // Update content
             document.getElementById('content').innerHTML = html;
@@ -215,6 +215,12 @@ class InvoiceApp {
                 this.dashboardPage.initialize();
             } else if (page === 'clients' && this.clientsPage && this.clientsPage.initialize) {
                 this.clientsPage.initialize();
+            } else if (page === 'invoices' && this.invoicesPage && this.invoicesPage.initialize) {
+                this.invoicesPage.initialize();
+            } else if (page === 'billing' && this.billingPage && this.billingPage.initialize) {
+                this.billingPage.initialize();
+            } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage && this.formsPage.initialize) {
+                this.formsPage.initialize();
             }
         }, 100);
     }
@@ -288,35 +294,17 @@ class InvoiceApp {
     }
 }
 
-// Initialize the app when the page loads
+// Initialize the app when the page loads and flush any queued calls from app-stub
 document.addEventListener('DOMContentLoaded', () => {
-    window.app = new InvoiceApp();
-    window.loadPage = (page) => window.app.loadPage(page);
+    if (!window.app || window.app === undefined || !window.app.loadPage) {
+        window.app = new InvoiceApp();
+        window.loadPage = (page) => window.app.loadPage(page);
+    }
+    // Flush queued early calls from app-stub (if any)
+    if (typeof window.__flushAppQueue === 'function') {
+        try { window.__flushAppQueue(window.app); } catch (e) { console.error(e); }
+    }
 });
 
 // Make app globally available
 window.InvoiceApp = InvoiceApp;
-
-// Auto-initialize if DOM is already loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(initApp, 100);
-    });
-} else {
-    setTimeout(initApp, 100);
-}
-
-function initApp() {
-    if (typeof InvoiceApp !== 'undefined') {
-        window.app = new InvoiceApp();
-        window.loadPage = (page) => window.app.loadPage(page);
-        
-        // Check URL hash
-        const hash = window.location.hash.substring(1);
-        if (hash) {
-            window.app.loadPage(hash);
-        }
-    } else {
-        console.error('InvoiceApp not loaded. Check script loading order.');
-    }
-}
