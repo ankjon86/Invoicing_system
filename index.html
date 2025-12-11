@@ -9,32 +9,13 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet" />
-    <!-- Custom CSS -->
-    <link href="css/styles.css" rel="stylesheet" />
+    <!-- Custom CSS at repository root (case-sensitive name: Styles.css) -->
+    <link rel="stylesheet" href="styles.css" />
 
     <style>
-        .sidebar {
-            background-color: #f8f9fa;
-            border-right: 1px solid #dee2e6;
-            min-height: calc(100vh - 56px);
-        }
-        .nav-link.active {
-            background-color: #e9ecef;
-            border-left: 3px solid #0d6efd;
-        }
-        .stats-card {
-            transition: transform 0.3s;
-        }
-        .stats-card:hover {
-            transform: translateY(-5px);
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
+        /* Minimal inline fallbacks */
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
@@ -134,35 +115,30 @@
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- App stub (prevents early clicks from failing) -->
-    <script src="app-stub.js"></script>
+    <!-- Optional: lightweight stub to queue early calls so buttons won't throw before app is ready -->
+    <script src="js/app-stub.js"></script>
 
-    <!-- Loader script: dynamically injects the split JS files in order -->
-    <script src="loader.js"></script>
+    <!-- Loader that dynamically injects split JS files (ensure js/loader.js exists) -->
+    <script src="js/loader.js"></script>
 
     <script>
-        // Minimal inline app bootstrap helpers (left small on purpose).
-        // loader.js will inject the big files (utils, api, pages, app) and define InvoiceApp/loadPage.
+        // Minimal inline app bootstrap helpers (kept small).
+        // loader.js will inject main scripts and initialize InvoiceApp.
         window.addEventListener('DOMContentLoaded', function() {
-            // Set demo user email
             localStorage.setItem('userEmail', 'demo@example.com');
             const userEmailEl = document.getElementById('userEmail');
             if (userEmailEl) userEmailEl.textContent = 'demo@example.com';
         });
 
-        // Fallback helpers so early clicks don't fail if app isn't loaded yet.
-        // Once app is ready loader/injected scripts will override loadPage and initialize functions.
+        // Safe fallbacks so early clicks don't throw if app isn't ready yet.
         window.loadPage = window.loadPage || function(page) {
-            console.warn('App not ready yet. Attempted to load page:', page);
-            window.location.hash = page;
+            console.warn('App not ready yet. Queued load request for:', page);
+            // keep behavior predictable: update hash so app loads this on init
+            try { window.location.hash = page; } catch (e) {}
         };
 
         window.initializeSystem = window.initializeSystem || function() {
-            if (window.app && window.app.initializeSystem) {
-                window.app.initializeSystem();
-            } else {
-                console.warn('initializeSystem called before app available.');
-            }
+            console.warn('initializeSystem called before app ready.');
         };
 
         window.logout = window.logout || function() {
