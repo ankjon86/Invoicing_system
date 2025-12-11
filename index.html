@@ -1,150 +1,143 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Invoice System</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Invoice System</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet" />
-    <!-- Custom CSS at repository root (case-sensitive name: Styles.css) -->
-    <link rel="stylesheet" href="styles.css" />
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <!-- Custom CSS (keep css/styles.css as the stylesheet) -->
+  <link href="css/styles.css" rel="stylesheet" />
 
-    <style>
-        /* Minimal inline fallbacks */
-        .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    </style>
+  <style>
+    /* minimal runtime fallbacks */
+    .fade-in { animation: fadeIn 0.3s ease-in; }
+    @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="bi bi-receipt me-2"></i>Invoice System
-            </a>
-            <div class="d-flex align-items-center">
-                <span class="text-light me-3" id="userEmail"></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">
-                    <i class="bi bi-box-arrow-right"></i> Logout
-                </button>
-            </div>
-        </div>
-    </nav>
-
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 col-lg-2 d-md-block sidebar collapse" id="sidebarCollapse">
-                <div class="sidebar-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#dashboard" onclick="loadPage('dashboard')">
-                                <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#clients" onclick="loadPage('clients')">
-                                <i class="bi bi-people me-2"></i> Clients
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#invoices" onclick="loadPage('invoices')">
-                                <i class="bi bi-receipt me-2"></i> Invoices
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#billing" onclick="loadPage('billing')">
-                                <i class="bi bi-credit-card me-2"></i> Billing
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#products" onclick="loadPage('products')">
-                                <i class="bi bi-box me-2"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#reports" onclick="loadPage('reports')">
-                                <i class="bi bi-bar-chart me-2"></i> Reports
-                            </a>
-                        </li>
-                    </ul>
-
-                    <hr class="my-3" />
-
-                    <h6 class="sidebar-heading px-3 text-muted">Quick Actions</h6>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="#client-form" onclick="loadPage('client-form')">
-                                <i class="bi bi-person-plus me-2"></i> Add Client
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#invoice-form" onclick="loadPage('invoice-form')">
-                                <i class="bi bi-plus-circle me-2"></i> Create Invoice
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="initializeSystem()">
-                                <i class="bi bi-gear me-2"></i> Initialize System
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Main Content -->
-            <main class="col-md-10 col-lg-10 ms-sm-auto px-md-4 py-4">
-                <div id="content">
-                    <!-- Content loads here dynamically -->
-                    <div class="text-center mt-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading...</p>
-                    </div>
-                </div>
-            </main>
-        </div>
+      <a class="navbar-brand" href="#"><i class="bi bi-receipt me-2"></i>Invoice System</a>
+      <div class="d-flex align-items-center">
+        <span class="text-light me-3" id="userEmail"></span>
+        <button class="btn btn-outline-light btn-sm" onclick="logout()">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </button>
+      </div>
     </div>
+  </nav>
 
-    <!-- Bootstrap JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Chart.js for graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 col-lg-2 d-md-block sidebar collapse" id="sidebarCollapse">
+        <div class="sidebar-sticky pt-3">
+          <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="#dashboard" onclick="loadPage('dashboard')"><i class="bi bi-speedometer2 me-2"></i> Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="#clients" onclick="loadPage('clients')"><i class="bi bi-people me-2"></i> Clients</a></li>
+            <li class="nav-item"><a class="nav-link" href="#invoices" onclick="loadPage('invoices')"><i class="bi bi-receipt me-2"></i> Invoices</a></li>
+            <li class="nav-item"><a class="nav-link" href="#billing" onclick="loadPage('billing')"><i class="bi bi-credit-card me-2"></i> Billing</a></li>
+            <li class="nav-item"><a class="nav-link" href="#products" onclick="loadPage('products')"><i class="bi bi-box me-2"></i> Products</a></li>
+            <li class="nav-item"><a class="nav-link" href="#reports" onclick="loadPage('reports')"><i class="bi bi-bar-chart me-2"></i> Reports</a></li>
+          </ul>
 
-    <!-- Optional: lightweight stub to queue early calls so buttons won't throw before app is ready -->
-    <script src="js/app-stub.js"></script>
+          <hr class="my-3" />
 
-    <!-- Loader that dynamically injects split JS files (ensure js/loader.js exists) -->
-    <script src="js/loader.js"></script>
+          <h6 class="sidebar-heading px-3 text-muted">Quick Actions</h6>
+          <ul class="nav flex-column">
+            <li class="nav-item"><a class="nav-link" href="#client-form" onclick="loadPage('client-form')"><i class="bi bi-person-plus me-2"></i> Add Client</a></li>
+            <li class="nav-item"><a class="nav-link" href="#invoice-form" onclick="loadPage('invoice-form')"><i class="bi bi-plus-circle me-2"></i> Create Invoice</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="initializeSystem()"><i class="bi bi-gear me-2"></i> Initialize System</a></li>
+          </ul>
+        </div>
+      </div>
 
-    <script>
-        // Minimal inline app bootstrap helpers (kept small).
-        // loader.js will inject main scripts and initialize InvoiceApp.
-        window.addEventListener('DOMContentLoaded', function() {
-            localStorage.setItem('userEmail', 'demo@example.com');
-            const userEmailEl = document.getElementById('userEmail');
-            if (userEmailEl) userEmailEl.textContent = 'demo@example.com';
-        });
+      <!-- Main Content -->
+      <main class="col-md-10 col-lg-10 ms-sm-auto px-md-4 py-4">
+        <div id="content">
+          <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+            <p class="mt-2">Loading...</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
 
-        // Safe fallbacks so early clicks don't throw if app isn't ready yet.
-        window.loadPage = window.loadPage || function(page) {
-            console.warn('App not ready yet. Queued load request for:', page);
-            // keep behavior predictable: update hash so app loads this on init
-            try { window.location.hash = page; } catch (e) {}
-        };
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        window.initializeSystem = window.initializeSystem || function() {
-            console.warn('initializeSystem called before app ready.');
-        };
+  <!-- App scripts (static, in expected locations) -->
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
 
-        window.logout = window.logout || function() {
-            localStorage.clear();
-            window.location.reload();
-        };
-    </script>
+  <!-- Page modules -->
+  <script src="js/pages/dashboard.js"></script>
+  <script src="js/pages/clients.js"></script>
+  <script src="js/pages/invoices.js"></script>
+  <script src="js/pages/billing.js"></script>
+  <script src="js/pages/forms.js"></script>
+
+  <!-- Main app (must be last) -->
+  <script src="js/app.js"></script>
+
+  <!-- Inline bootstrap / initialization -->
+  <script>
+    // set demo email safely
+    document.addEventListener('DOMContentLoaded', function () {
+      try {
+        localStorage.setItem('userEmail', 'demo@example.com');
+        const el = document.getElementById('userEmail');
+        if (el) el.textContent = 'demo@example.com';
+      } catch (e) { console.error(e); }
+    });
+
+    // safe fallback functions if app not loaded yet (these will be overwritten by app.js)
+    window.loadPage = window.loadPage || function(page) {
+      // update hash; when app is ready it should read hash and render
+      try { window.location.hash = page; } catch (e) {}
+      console.warn('App not ready yet — stored hash for', page);
+    };
+
+    window.logout = window.logout || function() { localStorage.clear(); location.reload(); };
+
+    window.initializeSystem = window.initializeSystem || function() {
+      if (window.app && typeof window.app.initializeSystem === 'function') {
+        window.app.initializeSystem();
+      } else {
+        console.warn('initializeSystem called before app ready');
+      }
+    };
+
+    // Handle hash changes (app will also respond)
+    window.addEventListener('hashchange', function () {
+      const page = window.location.hash.substring(1);
+      if (page && window.app && typeof window.app.loadPage === 'function') {
+        window.app.loadPage(page);
+      }
+    });
+
+    // If app.js defines InvoiceApp but didn't auto-initialize, initialize here
+    // app.js in your repo already initializes InvoiceApp on DOMContentLoaded; this is a safe guard.
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof InvoiceApp === 'function' && (!window.app || !window.app.loadPage)) {
+        try {
+          window.app = new InvoiceApp();
+          window.loadPage = (page) => window.app.loadPage(page);
+          const hash = window.location.hash.substring(1);
+          window.app.loadPage(hash || 'dashboard');
+        } catch (e) {
+          console.error('Failed to initialize InvoiceApp:', e);
+        }
+      }
+    });
+  </script>
 </body>
 </html>
