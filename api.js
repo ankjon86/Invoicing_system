@@ -145,6 +145,55 @@ class ApiService {
         }
     }
 
+    // Billing APIs
+async addContract(contractData) {
+    return this.request('add_contract', contractData);
+}
+
+async getContracts(filters = {}) {
+    return this.request('get_contracts', filters, 'GET');
+}
+
+async getContract(contractId) {
+    return this.request('get_contract', { id: contractId }, 'GET');
+}
+
+async updateContractStatus(contractId, status) {
+    return this.request('update_contract_status', { id: contractId, status });
+}
+
+async addBillingSchedule(scheduleData) {
+    return this.request('add_billing_schedule', scheduleData);
+}
+
+async getBillingSchedules(filters = {}) {
+    return this.request('get_billing_schedules', filters, 'GET');
+}
+
+async updateBillingSchedule(scheduleId, updates) {
+    return this.request('update_billing_schedule', { id: scheduleId, updates });
+}
+
+async pauseBillingSchedule(scheduleId) {
+    return this.request('pause_billing_schedule', { id: scheduleId });
+}
+
+async resumeBillingSchedule(scheduleId) {
+    return this.request('resume_billing_schedule', { id: scheduleId });
+}
+
+async getUpcomingInvoices(filters = {}) {
+    return this.request('get_upcoming_invoices', filters, 'GET');
+}
+
+async getClientBillingHistory(clientId) {
+    return this.request('get_client_billing_history', { client_id: clientId }, 'GET');
+}
+
+async processDueInvoices() {
+    return this.request('process_due_invoices', {});
+}
+
     // Client APIs
     async addClient(clientData) {
         return this.request('add_client', clientData);
