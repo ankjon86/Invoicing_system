@@ -2,7 +2,7 @@
 class ApiService {
   constructor() {
     // UPDATE THIS with your Google Apps Script Web App URL
-    this.BASE_URL = 'https://script.google.com/macros/library/d/1Nvz-eLSVITt1MoJY-YYxenMpEX4ArjrygAnhvvP_SbwN5TYlqm0BysIZ/9';
+this.BASE_URL = 'https://script.google.com/macros/s/AKfycbxFMMpImLf5BdTkOihOd4RZ-Kk70smJxse8M7sHFrTElgGKXheyOPyIyY0prvPPgVD8/exec';
     this.cache = new Map();
   }
 
