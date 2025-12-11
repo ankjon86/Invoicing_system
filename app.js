@@ -67,6 +67,9 @@ class InvoiceApp {
         if (window.FormsPage) {
             this.formsPage = new FormsPage(this);
         }
+         if (window.BillingPage) {
+        this.billingPage = new BillingPage(this);
+    }
     }
 
     async loadInitialData() {
