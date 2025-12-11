@@ -109,19 +109,21 @@ class InvoiceApp {
             this.showLoadingState(page);
             
             // Load page content based on module
-            let html = '';
-            
-            if (page === 'dashboard' && this.dashboardPage) {
-                html = await this.dashboardPage.render();
-            } else if (page === 'clients' && this.clientsPage) {
-                html = await this.clientsPage.render();
-            } else if (page === 'invoices' && this.invoicesPage) {
-                html = await this.invoicesPage.render();
-            } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage) {
-                html = await this.formsPage.render(page);
-            } else {
-                html = this.loadFallbackPage(page);
-            }
+               let html = '';
+        
+        if (page === 'dashboard' && this.dashboardPage) {
+            html = await this.dashboardPage.render();
+        } else if (page === 'clients' && this.clientsPage) {
+            html = await this.clientsPage.render();
+        } else if (page === 'invoices' && this.invoicesPage) {
+            html = await this.invoicesPage.render();
+        } else if (page === 'billing' && this.billingPage) {
+            html = await this.billingPage.render();
+        } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage) {
+            html = await this.formsPage.render(page);
+        } else {
+            html = this.loadFallbackPage(page);
+        }
             
             // Update content
             document.getElementById('content').innerHTML = html;
