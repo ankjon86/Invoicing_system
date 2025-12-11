@@ -11,6 +11,30 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="css/styles.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            min-height: calc(100vh - 56px);
+        }
+        .nav-link.active {
+            background-color: #e9ecef;
+            border-left: 3px solid #0d6efd;
+        }
+        .stats-card {
+            transition: transform 0.3s;
+        }
+        .stats-card:hover {
+            transform: translateY(-5px);
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -31,36 +55,36 @@
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
-            <div class="col-md-2 col-lg-2 d-md-block sidebar">
+            <div class="col-md-2 col-lg-2 d-md-block sidebar collapse" id="sidebarCollapse">
                 <div class="sidebar-sticky pt-3">
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link active" href="#" onclick="loadPage('dashboard')">
+                            <a class="nav-link" href="#dashboard" onclick="loadPage('dashboard')">
                                 <i class="bi bi-speedometer2 me-2"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('clients')">
+                            <a class="nav-link" href="#clients" onclick="loadPage('clients')">
                                 <i class="bi bi-people me-2"></i> Clients
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('invoices')">
+                            <a class="nav-link" href="#invoices" onclick="loadPage('invoices')">
                                 <i class="bi bi-receipt me-2"></i> Invoices
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('billing')">
+                            <a class="nav-link" href="#billing" onclick="loadPage('billing')">
                                 <i class="bi bi-credit-card me-2"></i> Billing
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('products')">
+                            <a class="nav-link" href="#products" onclick="loadPage('products')">
                                 <i class="bi bi-box me-2"></i> Products
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('reports')">
+                            <a class="nav-link" href="#reports" onclick="loadPage('reports')">
                                 <i class="bi bi-bar-chart me-2"></i> Reports
                             </a>
                         </li>
@@ -71,12 +95,12 @@
                     <h6 class="sidebar-heading px-3 text-muted">Quick Actions</h6>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('client-form')">
+                            <a class="nav-link" href="#client-form" onclick="loadPage('client-form')">
                                 <i class="bi bi-person-plus me-2"></i> Add Client
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="loadPage('invoice-form')">
+                            <a class="nav-link" href="#invoice-form" onclick="loadPage('invoice-form')">
                                 <i class="bi bi-plus-circle me-2"></i> Create Invoice
                             </a>
                         </li>
@@ -109,16 +133,24 @@
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Custom JS Files -->
+    <!-- Core JS Files -->
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/app.js"></script>
     
+    <!-- Page Modules (Load after core) -->
+    <script src="js/app.js"></script>
+    <script src="js/pages/dashboard.js"></script>
+    <script src="js/pages/clients.js"></script>
+    <script src="js/pages/invoices.js"></script>
+    <script src="js/pages/billing.js"></script>
+    <script src="js/pages/forms.js"></script>
+    
+    <!-- Initialize after all scripts are loaded -->
     <script>
-        // Initialize the application
+        // Initialize the application when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if user is authenticated
+            // Check authentication
             if (!isAuthenticated()) {
                 window.location.href = 'login.html';
                 return;
@@ -128,16 +160,39 @@
             const userEmail = localStorage.getItem('userEmail') || 'User';
             document.getElementById('userEmail').textContent = userEmail;
             
-            // Load default page
+            // Initialize app
+            window.app = new InvoiceApp();
+            window.loadPage = (page) => window.app.loadPage(page);
+            
+            // Load page from hash or default to dashboard
             const hash = window.location.hash.substring(1);
             loadPage(hash || 'dashboard');
+            
+            // Highlight active nav based on hash
+            setTimeout(() => {
+                const hash = window.location.hash.substring(1) || 'dashboard';
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${hash}`) {
+                        link.classList.add('active');
+                    }
+                });
+            }, 100);
         });
         
         // Handle hash changes
         window.addEventListener('hashchange', function() {
             const page = window.location.hash.substring(1);
-            if (page) {
-                loadPage(page);
+            if (page && window.app) {
+                window.app.loadPage(page);
+                
+                // Update active nav
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === `#${page}`) {
+                        link.classList.add('active');
+                    }
+                });
             }
         });
         
@@ -145,15 +200,12 @@
             localStorage.clear();
             window.location.href = 'login.html';
         }
-    <!-- After other scripts -->
-<script src="js/utils.js"></script>
-<script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/pages/dashboard.js"></script>
-<script src="js/pages/clients.js"></script>
-<script src="js/pages/invoices.js"></script>
-<script src="js/pages/forms.js"></script>
-<script src="js/app.js"></script>
+        
+        function initializeSystem() {
+            if (window.app && window.app.initializeSystem) {
+                window.app.initializeSystem();
+            }
+        }
     </script>
 </body>
 </html>
