@@ -1,8 +1,8 @@
 // API Service for Google Apps Script Backend
 class ApiService {
     constructor() {
-        // Replace with your Google Apps Script Web App URL
-        this.BASE_URL = 'https://script.google.com/macros/s/AKfycbxFMMpImLf5BdTkOihOd4RZ-Kk70smJxse8M7sHFrTElgGKXheyOPyIyY0prvPPgVD8/exec';
+        // Your Google Apps Script Web App URL (update this!)
+        this.BASE_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
         this.cache = new Map();
         this.requestQueue = [];
         this.isProcessingQueue = false;
@@ -52,32 +52,109 @@ class ApiService {
         }
 
         // Delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         // Process next request
         this.processQueue();
     }
 
-    // Execute single request
+    // Execute single request - FIXED for Google Apps Script
     async executeRequest({ action, data, method }) {
         Utils.showLoading(true);
         
         try {
-            // Create form data
-            const formData = new FormData();
-            formData.append('action', action);
-            formData.append('data', JSON.stringify(data));
-            formData.append('timestamp', Date.now());
+            // Create request payload
+            const payload = {
+                action: action,
+                data: data
+            };
+            
+            // Use fetch with proper headers for GAS
+            const response = await fetch(this.BASE_URL, {
+                method: 'POST',
+                mode: 'no-cors', // GAS requires no-cors for POST
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: this.encodeFormData(payload)
+            });
 
-            // Create iframe for response
-            const iframeId = `api-frame-${Date.now()}`;
+            // For no-cors mode, we can't read the response directly
+            // Google Apps Script will handle the response via ContentService
+            // We'll use a different approach with JSONP-like callback
+            return await this.executeJsonpRequest(action, data);
+            
+        } catch (error) {
+            Utils.showLoading(false);
+            console.error('API Request Error:', error);
+            
+            // Fallback to iframe method for GAS
+            return this.executeIframeRequest(action, data);
+        }
+    }
+
+    // Alternative method for GAS using JSONP pattern
+    async executeJsonpRequest(action, data) {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2);
+            
+            // Create script element
+            const script = document.createElement('script');
+            const url = new URL(this.BASE_URL);
+            url.searchParams.append('action', action);
+            url.searchParams.append('data', JSON.stringify(data));
+            url.searchParams.append('callback', callbackName);
+            
+            // Define callback function
+            window[callbackName] = (response) => {
+                // Cleanup
+                document.head.removeChild(script);
+                delete window[callbackName];
+                
+                Utils.showLoading(false);
+                
+                // Cache GET responses
+                if (action.startsWith('get_')) {
+                    const cacheKey = `${action}_${JSON.stringify(data)}`;
+                    this.cache.set(cacheKey, response);
+                }
+                
+                resolve(response);
+            };
+            
+            script.src = url.toString();
+            script.onerror = () => {
+                document.head.removeChild(script);
+                delete window[callbackName];
+                Utils.showLoading(false);
+                reject(new Error('Failed to load script'));
+            };
+            
+            document.head.appendChild(script);
+            
+            // Timeout after 30 seconds
+            setTimeout(() => {
+                if (script.parentNode) {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    Utils.showLoading(false);
+                    reject(new Error('Request timeout'));
+                }
+            }, 30000);
+        });
+    }
+
+    // Fallback method using iframe (works with GAS)
+    async executeIframeRequest(action, data) {
+        return new Promise((resolve, reject) => {
+            const iframeId = 'api-frame-' + Date.now();
             const iframe = document.createElement('iframe');
             iframe.id = iframeId;
             iframe.name = iframeId;
             iframe.style.display = 'none';
             document.body.appendChild(iframe);
 
-            // Create form
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = this.BASE_URL;
@@ -85,114 +162,119 @@ class ApiService {
             form.style.display = 'none';
             
             // Add form data
-            for (const [key, value] of formData.entries()) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = value;
-                form.appendChild(input);
-            }
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            form.appendChild(actionInput);
+            
+            const dataInput = document.createElement('input');
+            dataInput.type = 'hidden';
+            dataInput.name = 'data';
+            dataInput.value = JSON.stringify(data);
+            form.appendChild(dataInput);
             
             document.body.appendChild(form);
 
-            // Wait for response
-            const response = await new Promise((resolve, reject) => {
-                iframe.onload = () => {
-                    try {
-                        const responseText = iframe.contentDocument.body.textContent;
+            // Listen for iframe load
+            iframe.onload = () => {
+                try {
+                    const responseText = iframe.contentDocument?.body?.textContent || '';
+                    if (responseText) {
                         const result = JSON.parse(responseText);
                         
                         // Cache GET responses
-                        if (method === 'GET' && result.success) {
+                        if (action.startsWith('get_')) {
                             const cacheKey = `${action}_${JSON.stringify(data)}`;
                             this.cache.set(cacheKey, result);
                         }
                         
                         resolve(result);
-                    } catch (error) {
-                        reject(new Error('Failed to parse response'));
-                    } finally {
-                        // Cleanup
-                        if (iframe.parentNode) iframe.remove();
-                        if (form.parentNode) form.remove();
+                    } else {
+                        reject(new Error('Empty response'));
                     }
-                };
-
-                iframe.onerror = () => {
-                    reject(new Error('Network error'));
+                } catch (error) {
+                    reject(new Error('Failed to parse response: ' + error.message));
+                } finally {
+                    // Cleanup
                     if (iframe.parentNode) iframe.remove();
                     if (form.parentNode) form.remove();
-                };
+                    Utils.showLoading(false);
+                }
+            };
 
-                form.submit();
-            });
+            iframe.onerror = () => {
+                if (iframe.parentNode) iframe.remove();
+                if (form.parentNode) form.remove();
+                Utils.showLoading(false);
+                reject(new Error('Network error'));
+            };
 
-            Utils.showLoading(false);
-            return response;
+            form.submit();
+        });
+    }
 
-        } catch (error) {
-            Utils.showLoading(false);
-            console.error('API Request Error:', error);
-            
-            // Show user-friendly error message
-            let errorMessage = 'Network error. Please check your connection.';
-            if (error.message.includes('Failed to parse')) {
-                errorMessage = 'Server response error. Please try again.';
+    // Helper method to encode form data
+    encodeFormData(data) {
+        const formData = new URLSearchParams();
+        for (const key in data) {
+            if (typeof data[key] === 'object') {
+                formData.append(key, JSON.stringify(data[key]));
+            } else {
+                formData.append(key, data[key]);
             }
-            
-            Utils.showNotification(errorMessage, 'danger');
-            throw error;
         }
+        return formData.toString();
     }
 
     // Billing APIs
-async addContract(contractData) {
-    return this.request('add_contract', contractData);
-}
+    async addContract(contractData) {
+        return this.request('add_contract', contractData);
+    }
 
-async getContracts(filters = {}) {
-    return this.request('get_contracts', filters, 'GET');
-}
+    async getContracts(filters = {}) {
+        return this.request('get_contracts', filters, 'GET');
+    }
 
-async getContract(contractId) {
-    return this.request('get_contract', { id: contractId }, 'GET');
-}
+    async getContract(contractId) {
+        return this.request('get_contract', { id: contractId }, 'GET');
+    }
 
-async updateContractStatus(contractId, status) {
-    return this.request('update_contract_status', { id: contractId, status });
-}
+    async updateContractStatus(contractId, status) {
+        return this.request('update_contract_status', { id: contractId, status });
+    }
 
-async addBillingSchedule(scheduleData) {
-    return this.request('add_billing_schedule', scheduleData);
-}
+    async addBillingSchedule(scheduleData) {
+        return this.request('add_billing_schedule', scheduleData);
+    }
 
-async getBillingSchedules(filters = {}) {
-    return this.request('get_billing_schedules', filters, 'GET');
-}
+    async getBillingSchedules(filters = {}) {
+        return this.request('get_billing_schedules', filters, 'GET');
+    }
 
-async updateBillingSchedule(scheduleId, updates) {
-    return this.request('update_billing_schedule', { id: scheduleId, updates });
-}
+    async updateBillingSchedule(scheduleId, updates) {
+        return this.request('update_billing_schedule', { id: scheduleId, updates });
+    }
 
-async pauseBillingSchedule(scheduleId) {
-    return this.request('pause_billing_schedule', { id: scheduleId });
-}
+    async pauseBillingSchedule(scheduleId) {
+        return this.request('pause_billing_schedule', { id: scheduleId });
+    }
 
-async resumeBillingSchedule(scheduleId) {
-    return this.request('resume_billing_schedule', { id: scheduleId });
-}
+    async resumeBillingSchedule(scheduleId) {
+        return this.request('resume_billing_schedule', { id: scheduleId });
+    }
 
-async getUpcomingInvoices(filters = {}) {
-    return this.request('get_upcoming_invoices', filters, 'GET');
-}
+    async getUpcomingInvoices(filters = {}) {
+        return this.request('get_upcoming_invoices', filters, 'GET');
+    }
 
-async getClientBillingHistory(clientId) {
-    return this.request('get_client_billing_history', { client_id: clientId }, 'GET');
-}
+    async getClientBillingHistory(clientId) {
+        return this.request('get_client_billing_history', { client_id: clientId }, 'GET');
+    }
 
-async processDueInvoices() {
-    return this.request('process_due_invoices', {});
-}
+    async processDueInvoices() {
+        return this.request('process_due_invoices', {});
+    }
 
     // Client APIs
     async addClient(clientData) {
@@ -249,27 +331,6 @@ async processDueInvoices() {
         return this.request('get_products', {}, 'GET');
     }
 
-    async updateProduct(productData) {
-        return this.request('update_product', productData);
-    }
-
-    async deleteProduct(productId) {
-        return this.request('delete_product', { id: productId });
-    }
-
-    // Billing APIs
-    async addBillingSchedule(scheduleData) {
-        return this.request('add_billing_schedule', scheduleData);
-    }
-
-    async getBillingSchedules() {
-        return this.request('get_billing_schedules', {}, 'GET');
-    }
-
-    async updateBillingSchedule(data) {
-        return this.request('update_billing_schedule', data);
-    }
-
     // System APIs
     async initializeSystem() {
         return this.request('initialize_system', {});
@@ -277,14 +338,6 @@ async processDueInvoices() {
 
     async getDashboardStats() {
         return this.request('get_stats', {}, 'GET');
-    }
-
-    async getReports(timeframe = 'monthly') {
-        return this.request('get_reports', { timeframe }, 'GET');
-    }
-
-    async exportData(type) {
-        return this.request('export_data', { type });
     }
 
     // Clear cache
@@ -296,7 +349,7 @@ async processDueInvoices() {
     // Test connection
     async testConnection() {
         try {
-            const response = await this.getDashboardStats();
+            const response = await this.request('test', {}, 'GET');
             return {
                 connected: response.success,
                 message: response.success ? 'Connected to server' : 'Connection failed'
