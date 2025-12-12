@@ -30,15 +30,12 @@ class DashboardPage {
     getTemplate() {
         return `
             <div class="container-fluid">
-                <!-- Header -->
+                <!-- Header - Removed Initialize System and Refresh buttons -->
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>Dashboard</h2>
                     <div>
-                        <button class="btn btn-outline-primary me-2" onclick="app.refreshDashboard()">
-                            <i class="bi bi-arrow-clockwise"></i> Refresh
-                        </button>
-                        <button class="btn btn-primary" onclick="app.initializeSystem()">
-                            <i class="bi bi-gear"></i> Initialize System
+                        <button class="btn btn-primary" onclick="app.loadPage('client-form')">
+                            <i class="bi bi-person-plus me-1"></i> Add Client
                         </button>
                     </div>
                 </div>
@@ -122,7 +119,7 @@ class DashboardPage {
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stats-card border-primary">
                     <div class="card-body text-center">
-                        <i class="bi bi-people text-primary mb-2" style="font-size: 2.5rem;"></i>
+                        <i class="bi bi-people text-primary mb-2" style="font-size: 1.5rem;"></i>
                         <h6 class="text-muted">Active Clients</h6>
                         <h3 class="mt-2">${this.stats.activeClients || 0}</h3>
                     </div>
@@ -132,7 +129,7 @@ class DashboardPage {
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stats-card border-success">
                     <div class="card-body text-center">
-                        <i class="bi bi-currency-dollar text-success mb-2" style="font-size: 2.5rem;"></i>
+                        <i class="bi bi-currency-dollar text-success mb-2" style="font-size: 1.5rem;"></i>
                         <h6 class="text-muted">Total Revenue</h6>
                         <h3 class="mt-2">${Utils.formatCurrency(this.stats.totalRevenue || 0)}</h3>
                     </div>
@@ -142,7 +139,7 @@ class DashboardPage {
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stats-card border-warning">
                     <div class="card-body text-center">
-                        <i class="bi bi-clock text-warning mb-2" style="font-size: 2.5rem;"></i>
+                        <i class="bi bi-clock text-warning mb-2" style="font-size: 1.5rem;"></i>
                         <h6 class="text-muted">Pending Invoices</h6>
                         <h3 class="mt-2">${this.stats.pendingInvoices || 0}</h3>
                     </div>
@@ -152,7 +149,7 @@ class DashboardPage {
             <div class="col-md-3 col-sm-6 mb-3">
                 <div class="card stats-card border-info">
                     <div class="card-body text-center">
-                        <i class="bi bi-receipt text-info mb-2" style="font-size: 2.5rem;"></i>
+                        <i class="bi bi-receipt text-info mb-2" style="font-size: 1.5rem;"></i>
                         <h6 class="text-muted">Total Invoices</h6>
                         <h3 class="mt-2">${this.stats.totalInvoices || 0}</h3>
                     </div>
