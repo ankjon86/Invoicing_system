@@ -1,4 +1,4 @@
-// Forms Page Module (for Client and Invoice forms)
+// Forms Page Module
 class FormsPage {
     constructor(app) {
         this.app = app;
@@ -53,12 +53,12 @@ class FormsPage {
                                     <!-- Tab Navigation -->
                                     <ul class="nav nav-tabs mb-4" id="clientFormTabs">
                                         <li class="nav-item">
-                                            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#basicInfoTab">
+                                            <button class="nav-link active" type="button" data-bs-toggle="tab" data-bs-target="#basicInfoTab">
                                                 <i class="bi bi-person me-1"></i>Basic Information
                                             </button>
                                         </li>
                                         <li class="nav-item">
-                                            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#contractTermsTab">
+                                            <button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#contractTermsTab">
                                                 <i class="bi bi-file-text me-1"></i>Contract & Terms
                                             </button>
                                         </li>
@@ -107,7 +107,7 @@ class FormsPage {
                                                         <input type="text" class="form-control" name="country">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Tax Number (GST/VAT)</label>
+                                                        <label class="form-label">Tax Number</label>
                                                         <input type="text" class="form-control" name="tax_number">
                                                     </div>
                                                     <div class="mb-3">
@@ -123,7 +123,6 @@ class FormsPage {
                                                 </div>
                                             </div>
                                             
-                                            <!-- Additional Fields in Single Row -->
                                             <div class="row g-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Category</label>
@@ -137,7 +136,7 @@ class FormsPage {
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Tags (comma separated)</label>
-                                                    <input type="text" class="form-control" name="tags" placeholder="e.g., vip, recurring, corporate">
+                                                    <input type="text" class="form-control" name="tags" placeholder="vip, recurring, corporate">
                                                 </div>
                                             </div>
                                         </div>
@@ -145,7 +144,6 @@ class FormsPage {
                                         <!-- Tab 2: Contract & Terms -->
                                         <div class="tab-pane fade" id="contractTermsTab">
                                             <div class="row g-3">
-                                                <!-- Column 1 -->
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Payment Terms (days)</label>
@@ -154,11 +152,11 @@ class FormsPage {
                                                     <div class="mb-3">
                                                         <label class="form-label">Billing Frequency</label>
                                                         <select class="form-select" name="billing_frequency">
+                                                            <option value="">Select...</option>
                                                             <option value="MONTHLY">Monthly</option>
                                                             <option value="QUARTERLY">Quarterly</option>
                                                             <option value="YEARLY">Yearly</option>
                                                             <option value="ONE_TIME">One-time</option>
-                                                            <option value="CUSTOM">Custom</option>
                                                         </select>
                                                     </div>
                                                     <div class="mb-3">
@@ -167,14 +165,13 @@ class FormsPage {
                                                     </div>
                                                 </div>
                                                 
-                                                <!-- Column 2 -->
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Contract End Date</label>
                                                         <input type="date" class="form-control" name="contract_end_date">
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Auto-renew Contract</label>
+                                                        <label class="form-label">Auto-renew</label>
                                                         <select class="form-select" name="auto_renew">
                                                             <option value="false">No</option>
                                                             <option value="true">Yes</option>
@@ -183,33 +180,28 @@ class FormsPage {
                                                     <div class="mb-3">
                                                         <label class="form-label">Payment Method</label>
                                                         <select class="form-select" name="payment_method">
+                                                            <option value="">Select...</option>
                                                             <option value="BANK_TRANSFER">Bank Transfer</option>
                                                             <option value="CREDIT_CARD">Credit Card</option>
                                                             <option value="PAYPAL">PayPal</option>
                                                             <option value="CHECK">Check</option>
-                                                            <option value="CASH">Cash</option>
                                                         </select>
                                                     </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Contract Value -->
                                             <div class="row">
-                                                <div class="col-md-12">
+                                                <div class="col-12">
                                                     <div class="mb-3">
                                                         <label class="form-label">Contract Value</label>
                                                         <input type="number" class="form-control" name="contract_value" placeholder="0.00" step="0.01">
                                                     </div>
                                                 </div>
-                                            </div>
-                                            
-                                            <!-- Contract Details -->
-                                            <div class="row">
-                                                <div class="col-md-12">
+                                                <div class="col-12">
                                                     <div class="mb-3">
                                                         <label class="form-label">Contract Description</label>
                                                         <textarea class="form-control" name="contract_description" rows="3" 
-                                                                  placeholder="Brief description of services covered..."></textarea>
+                                                                  placeholder="Services covered by this contract..."></textarea>
                                                     </div>
                                                 </div>
                                             </div>
@@ -236,25 +228,10 @@ class FormsPage {
                     </div>
                 </div>
             </div>
-            
-            <script>
-                // Initialize tabs
-                document.addEventListener('DOMContentLoaded', function() {
-                    const triggerTabList = [].slice.call(document.querySelectorAll('#clientFormTabs button'));
-                    triggerTabList.forEach(triggerEl => {
-                        const tabTrigger = new bootstrap.Tab(triggerEl);
-                        triggerEl.addEventListener('click', function(event) {
-                            event.preventDefault();
-                            tabTrigger.show();
-                        });
-                    });
-                });
-            </script>
         `;
     }
 
     getInvoiceFormTemplate() {
-        // Keep existing invoice form template
         return `
             <div class="container-fluid">
                 <div class="row justify-content-center">
@@ -264,13 +241,125 @@ class FormsPage {
                                 <h5 class="mb-0">Create New Invoice</h5>
                             </div>
                             <div class="card-body">
-                                <!-- Your existing invoice form here -->
-                                <p>Invoice form will be here...</p>
+                                <form id="invoiceForm" onsubmit="return formsPage.submitInvoiceForm(event)">
+                                    <div class="mb-4">
+                                        <h6 class="border-bottom pb-2 mb-3">Client Information</h6>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Select Client *</label>
+                                                <select class="form-select" name="client_id" required>
+                                                    <option value="">Choose a client...</option>
+                                                    ${this.clients.map(client => `
+                                                        <option value="${client.client_id}">
+                                                            ${client.company_name} (${client.client_code || ''})
+                                                        </option>
+                                                    `).join('')}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Invoice Date</label>
+                                                <input type="date" class="form-control" name="date" 
+                                                       value="${new Date().toISOString().split('T')[0]}" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Due Date *</label>
+                                                <input type="date" class="form-control" name="due_date" required>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <h6 class="border-bottom pb-2 mb-3">Invoice Items</h6>
+                                        <div id="invoiceItems">
+                                            <div class="invoice-item row g-3 mb-3">
+                                                <div class="col-md-5">
+                                                    <label class="form-label">Description *</label>
+                                                    <input type="text" class="form-control item-description" 
+                                                           placeholder="Item description" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Quantity</label>
+                                                    <input type="number" class="form-control item-quantity" 
+                                                           value="1" min="1" step="1">
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Unit Price *</label>
+                                                    <input type="number" class="form-control item-unit-price" 
+                                                           placeholder="0.00" step="0.01" required>
+                                                </div>
+                                                <div class="col-md-2">
+                                                    <label class="form-label">Tax Rate (%)</label>
+                                                    <input type="number" class="form-control item-tax-rate" 
+                                                           value="0" step="0.01">
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <label class="form-label">&nbsp;</label>
+                                                    <button type="button" class="btn btn-danger w-100" 
+                                                            onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button type="button" class="btn btn-outline-primary" onclick="formsPage.addInvoiceItem()">
+                                            <i class="bi bi-plus-circle me-2"></i>Add Item
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <h6 class="border-bottom pb-2 mb-3">Invoice Summary</h6>
+                                        <div class="row">
+                                            <div class="col-md-6 offset-md-6">
+                                                <div class="card bg-light">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between mb-2">
+                                                            <span>Subtotal:</span>
+                                                            <span id="subtotal">$0.00</span>
+                                                        </div>
+                                                        <div class="d-flex justify-content-between mb-2">
+                                                            <span>Tax:</span>
+                                                            <span id="tax">$0.00</span>
+                                                        </div>
+                                                        <hr>
+                                                        <div class="d-flex justify-content-between fw-bold fs-5">
+                                                            <span>Total:</span>
+                                                            <span id="total">$0.00</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between">
+                                        <button type="button" class="btn btn-secondary" onclick="app.loadPage('invoices')">
+                                            Cancel
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="bi bi-send me-2"></i>Create Invoice
+                                        </button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            
+            <script>
+                // Set default due date to 30 days from now
+                const dueDateInput = document.querySelector('input[name="due_date"]');
+                const today = new Date();
+                const dueDate = new Date(today);
+                dueDate.setDate(today.getDate() + 30);
+                if (dueDateInput) {
+                    dueDateInput.value = dueDate.toISOString().split('T')[0];
+                }
+                
+                // Initialize calculations
+                formsPage.calculateInvoiceTotal();
+            </script>
         `;
     }
 
@@ -300,29 +389,6 @@ class FormsPage {
             // Add default values
             clientData.status = 'ACTIVE';
             
-            // Merge contract terms into metadata
-            const contractData = {
-                billing_frequency: clientData.billing_frequency,
-                contract_start_date: clientData.contract_start_date,
-                contract_end_date: clientData.contract_end_date,
-                auto_renew: clientData.auto_renew,
-                payment_method: clientData.payment_method,
-                contract_value: clientData.contract_value,
-                contract_description: clientData.contract_description
-            };
-            
-            // Remove contract fields from main client data
-            delete clientData.billing_frequency;
-            delete clientData.contract_start_date;
-            delete clientData.contract_end_date;
-            delete clientData.auto_renew;
-            delete clientData.payment_method;
-            delete clientData.contract_value;
-            delete clientData.contract_description;
-            
-            // Add contract data to metadata
-            clientData.contract_terms = contractData;
-            
             // Call API
             const response = await apiService.addClient(clientData);
             
@@ -339,6 +405,128 @@ class FormsPage {
         } finally {
             Utils.showLoading(false);
         }
+    }
+
+    async submitInvoiceForm(event) {
+        event.preventDefault();
+        
+        try {
+            Utils.showLoading(true);
+            
+            // Gather invoice data
+            const form = event.target;
+            const formData = new FormData(form);
+            const invoiceData = {
+                client_id: formData.get('client_id'),
+                date: formData.get('date'),
+                due_date: formData.get('due_date'),
+                notes: '',
+                items: []
+            };
+            
+            // Gather items
+            const items = document.querySelectorAll('.invoice-item');
+            items.forEach(item => {
+                const description = item.querySelector('.item-description').value;
+                const quantity = parseFloat(item.querySelector('.item-quantity').value) || 1;
+                const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
+                const taxRate = parseFloat(item.querySelector('.item-tax-rate').value) || 0;
+                
+                if (description && unitPrice > 0) {
+                    invoiceData.items.push({
+                        description,
+                        quantity,
+                        unit_price: unitPrice,
+                        tax_rate: taxRate
+                    });
+                }
+            });
+            
+            if (invoiceData.items.length === 0) {
+                throw new Error('Please add at least one item to the invoice');
+            }
+            
+            // Call API
+            const response = await apiService.createInvoice(invoiceData);
+            
+            if (response.success) {
+                Utils.showNotification('Invoice created successfully!', 'success');
+                this.app.loadPage('invoices');
+            } else {
+                throw new Error(response.error || 'Failed to create invoice');
+            }
+            
+        } catch (error) {
+            console.error('Error creating invoice:', error);
+            Utils.showNotification('Error: ' + error.message, 'danger');
+        } finally {
+            Utils.showLoading(false);
+        }
+    }
+
+    addInvoiceItem() {
+        const itemsContainer = document.getElementById('invoiceItems');
+        if (!itemsContainer) return;
+        
+        const newItem = document.createElement('div');
+        newItem.className = 'invoice-item row g-3 mb-3';
+        newItem.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" class="form-control item-description" 
+                       placeholder="Item description" required 
+                       oninput="formsPage.calculateInvoiceTotal()">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control item-quantity" 
+                       value="1" min="1" step="1" 
+                       oninput="formsPage.calculateInvoiceTotal()">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control item-unit-price" 
+                       placeholder="0.00" step="0.01" required 
+                       oninput="formsPage.calculateInvoiceTotal()">
+            </div>
+            <div class="col-md-2">
+                <input type="number" class="form-control item-tax-rate" 
+                       value="0" step="0.01" 
+                       oninput="formsPage.calculateInvoiceTotal()">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger w-100" 
+                        onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        itemsContainer.appendChild(newItem);
+    }
+
+    calculateInvoiceTotal() {
+        const items = document.querySelectorAll('.invoice-item');
+        let subtotal = 0;
+        let tax = 0;
+        
+        items.forEach(item => {
+            const quantity = parseFloat(item.querySelector('.item-quantity').value) || 0;
+            const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
+            const taxRate = parseFloat(item.querySelector('.item-tax-rate').value) || 0;
+            
+            const itemTotal = quantity * unitPrice;
+            const itemTax = itemTotal * (taxRate / 100);
+            
+            subtotal += itemTotal;
+            tax += itemTax;
+        });
+        
+        const total = subtotal + tax;
+        
+        const subtotalEl = document.getElementById('subtotal');
+        const taxEl = document.getElementById('tax');
+        const totalEl = document.getElementById('total');
+        
+        if (subtotalEl) subtotalEl.textContent = Utils.formatCurrency(subtotal);
+        if (taxEl) taxEl.textContent = Utils.formatCurrency(tax);
+        if (totalEl) totalEl.textContent = Utils.formatCurrency(total);
     }
 
     saveAsDraft() {
@@ -360,6 +548,21 @@ class FormsPage {
     initialize() {
         // Store reference to this instance for event handlers
         window.formsPage = this;
+        
+        // Initialize tabs for client form
+        if (this.currentForm === 'client-form') {
+            setTimeout(() => {
+                const triggerTabList = [].slice.call(document.querySelectorAll('#clientFormTabs button'));
+                triggerTabList.forEach(triggerEl => {
+                    triggerEl.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        const tab = new bootstrap.Tab(this);
+                        tab.show();
+                    });
+                });
+            }, 100);
+        }
+        
         console.log('Forms page initialized');
     }
 }
