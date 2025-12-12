@@ -1,5 +1,3 @@
-[file name]: billing.js
-[file content begin]
 // Billing Page Module
 class BillingPage {
     constructor(app) {
@@ -418,11 +416,16 @@ class BillingPage {
 
     async viewSchedule(scheduleId) {
         try {
-            const response = await apiService.getBillingSchedules({ schedule_id: scheduleId });
-            if (response.success && response.data.length > 0) {
-                this.showScheduleModal(response.data[0]);
+            const response = await apiService.getBillingSchedules();
+            if (response.success) {
+                const schedule = response.data.find(s => s.schedule_id === scheduleId);
+                if (schedule) {
+                    this.showScheduleModal(schedule);
+                } else {
+                    Utils.showNotification('Schedule not found', 'warning');
+                }
             } else {
-                Utils.showNotification('Schedule not found', 'warning');
+                Utils.showNotification('Error loading schedule details', 'danger');
             }
         } catch (error) {
             Utils.showNotification('Error loading schedule details', 'danger');
@@ -1010,4 +1013,3 @@ class BillingPage {
 
 // Export the class
 window.BillingPage = BillingPage;
-[file content end]
