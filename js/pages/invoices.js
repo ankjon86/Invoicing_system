@@ -55,9 +55,10 @@ class InvoicesPage {
                                                 <td>${Utils.formatDate(invoice.due_date)}</td>
                                                 <td>${Utils.formatCurrency(invoice.total)}</td>
                                                 <td>
-                                                    <span class="badge ${this.getStatusBadgeClass(invoice)}">
-                                                        ${invoice.status}
+                                                    <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
+                                                        ${invoice.status || 'UNPAID'}
                                                     </span>
+                                                    ${this.isOverdue(invoice) ? '<br><small class="text-danger">Overdue</small>' : ''}
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
@@ -72,9 +73,10 @@ class InvoicesPage {
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
                                                         <button class="btn btn-outline-success" 
-                                                                onclick="invoicesPage.sendInvoice('${invoice.invoice_id}')"
-                                                                title="Send Invoice">
-                                                            <i class="bi bi-send"></i>
+                                                                onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')"
+                                                                title="Mark as Paid"
+                                                                ${invoice.status === 'PAID' ? 'disabled' : ''}>
+                                                            <i class="bi bi-check-circle"></i>
                                                         </button>
                                                     </div>
                                                 </td>
@@ -104,21 +106,11 @@ class InvoicesPage {
         return client ? client.company_name : 'Unknown Client';
     }
 
-    getStatusBadgeClass(invoice) {
+    isOverdue(invoice) {
+        if (invoice.status === 'PAID') return false;
         const dueDate = new Date(invoice.due_date);
-        const isOverdue = dueDate < new Date() && invoice.status !== 'PAID';
-        
-        if (invoice.status === 'PAID') {
-            return 'bg-success';
-        } else if (isOverdue) {
-            return 'bg-danger';
-        } else if (invoice.status === 'SENT') {
-            return 'bg-info';
-        } else if (invoice.status === 'PENDING') {
-            return 'bg-warning';
-        } else {
-            return 'bg-secondary';
-        }
+        const today = new Date();
+        return dueDate < today;
     }
 
     async viewInvoice(invoiceId) {
@@ -144,21 +136,32 @@ class InvoicesPage {
         // app.loadPage(`invoice-edit?id=${invoiceId}`);
     }
 
-    async sendInvoice(invoiceId) {
-        if (confirm('Send this invoice to the client now?')) {
+    async markAsPaid(invoiceId) {
+        if (confirm('Mark this invoice as PAID? This action cannot be undone.')) {
             try {
                 Utils.showLoading(true);
-                const response = await apiService.sendInvoice(invoiceId);
+                // We need to update the invoice status
+                // First get the invoice to make sure it exists
+                const invoiceResponse = await apiService.getInvoice(invoiceId);
+                if (!invoiceResponse.success) {
+                    throw new Error('Invoice not found');
+                }
                 
-                if (response.success) {
-                    Utils.showNotification('Invoice sent successfully!', 'success');
+                // Update the invoice status
+                const updateResponse = await apiService.updateInvoiceStatus({
+                    invoice_id: invoiceId,
+                    status: 'PAID'
+                });
+                
+                if (updateResponse.success) {
+                    Utils.showNotification('Invoice marked as PAID successfully!', 'success');
                     // Refresh the invoices list
                     this.app.loadPage('invoices');
                 } else {
-                    throw new Error(response.error || 'Failed to send invoice');
+                    throw new Error(updateResponse.error || 'Failed to update invoice status');
                 }
             } catch (error) {
-                console.error('Error sending invoice:', error);
+                console.error('Error marking invoice as paid:', error);
                 Utils.showNotification('Error: ' + error.message, 'danger');
             } finally {
                 Utils.showLoading(false);
@@ -168,6 +171,7 @@ class InvoicesPage {
 
     showInvoiceModal(invoice) {
         const client = this.app.state.clients.find(c => c.client_id === invoice.client_id);
+        const isOverdue = this.isOverdue(invoice);
         
         const modalHtml = `
             <div class="modal fade" id="invoiceModal" tabindex="-1">
@@ -178,14 +182,25 @@ class InvoicesPage {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
+                            <!-- Status Alert -->
+                            <div class="alert ${invoice.status === 'PAID' ? 'alert-success' : isOverdue ? 'alert-danger' : 'alert-warning'}">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <i class="bi ${invoice.status === 'PAID' ? 'bi-check-circle' : isOverdue ? 'bi-exclamation-triangle' : 'bi-clock'} me-2"></i>
+                                        <strong>${invoice.status === 'PAID' ? 'PAID' : 'UNPAID'}</strong>
+                                        ${isOverdue ? ' - <strong>OVERDUE</strong>' : ''}
+                                    </div>
+                                    ${invoice.status !== 'PAID' ? `
+                                        <button class="btn btn-sm btn-success" onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')">
+                                            <i class="bi bi-check-circle me-1"></i>Mark as Paid
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <h6>Invoice Details</h6>
-                                    <p><strong>Status:</strong> 
-                                        <span class="badge ${this.getStatusBadgeClass(invoice)}">
-                                            ${invoice.status}
-                                        </span>
-                                    </p>
                                     <p><strong>Date:</strong> ${Utils.formatDate(invoice.date)}</p>
                                     <p><strong>Due Date:</strong> ${Utils.formatDate(invoice.due_date)}</p>
                                     <p><strong>Invoice ID:</strong> <code>${invoice.invoice_id}</code></p>
@@ -204,7 +219,7 @@ class InvoicesPage {
                             <!-- Financial Summary -->
                             <div class="row mb-4">
                                 <div class="col-md-8 offset-md-2">
-                                    <div class="card bg-light">
+                                    <div class="card ${invoice.status === 'PAID' ? 'border-success' : isOverdue ? 'border-danger' : 'border-warning'}">
                                         <div class="card-body">
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="fw-semibold">Subtotal:</span>
@@ -217,7 +232,9 @@ class InvoicesPage {
                                             <hr>
                                             <div class="d-flex justify-content-between fw-bold fs-5">
                                                 <span>Total Amount:</span>
-                                                <span class="text-primary">${Utils.formatCurrency(invoice.total || 0)}</span>
+                                                <span class="${invoice.status === 'PAID' ? 'text-success' : isOverdue ? 'text-danger' : 'text-warning'}">
+                                                    ${Utils.formatCurrency(invoice.total || 0)}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -267,11 +284,13 @@ class InvoicesPage {
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            ${invoice.status !== 'PAID' ? `
+                                <button type="button" class="btn btn-success" onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')">
+                                    <i class="bi bi-check-circle me-1"></i>Mark as Paid
+                                </button>
+                            ` : ''}
                             <button type="button" class="btn btn-primary" onclick="invoicesPage.editInvoice('${invoice.invoice_id}')">
                                 <i class="bi bi-pencil me-1"></i>Edit Invoice
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="invoicesPage.sendInvoice('${invoice.invoice_id}')">
-                                <i class="bi bi-send me-1"></i>Send Invoice
                             </button>
                         </div>
                     </div>
@@ -314,4 +333,3 @@ class InvoicesPage {
 }
 
 window.InvoicesPage = InvoicesPage;
-[file content end]
