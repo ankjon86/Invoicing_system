@@ -1,3 +1,5 @@
+[file name]: billing.js
+[file content begin]
 // Billing Page Module
 class BillingPage {
     constructor(app) {
@@ -415,7 +417,16 @@ class BillingPage {
     }
 
     async viewSchedule(scheduleId) {
-        Utils.showNotification('View schedule feature coming soon!', 'info');
+        try {
+            const response = await apiService.getBillingSchedules({ schedule_id: scheduleId });
+            if (response.success && response.data.length > 0) {
+                this.showScheduleModal(response.data[0]);
+            } else {
+                Utils.showNotification('Schedule not found', 'warning');
+            }
+        } catch (error) {
+            Utils.showNotification('Error loading schedule details', 'danger');
+        }
     }
 
     async pauseSchedule(scheduleId) {
@@ -425,9 +436,11 @@ class BillingPage {
                 if (response.success) {
                     Utils.showNotification('Billing schedule paused', 'success');
                     this.app.loadPage('billing');
+                } else {
+                    throw new Error(response.error || 'Failed to pause schedule');
                 }
             } catch (error) {
-                Utils.showNotification('Error pausing schedule', 'danger');
+                Utils.showNotification('Error pausing schedule: ' + error.message, 'danger');
             }
         }
     }
@@ -438,37 +451,412 @@ class BillingPage {
             if (response.success) {
                 Utils.showNotification('Billing schedule resumed', 'success');
                 this.app.loadPage('billing');
+            } else {
+                throw new Error(response.error || 'Failed to resume schedule');
             }
         } catch (error) {
-            Utils.showNotification('Error resuming schedule', 'danger');
+            Utils.showNotification('Error resuming schedule: ' + error.message, 'danger');
         }
     }
 
     async createInvoiceFromSchedule(scheduleId) {
-        if (confirm('Create invoice from this schedule now?')) {
-            Utils.showNotification('Invoice creation from schedule coming soon!', 'info');
-            // You would call an API endpoint to generate invoice from schedule
+        try {
+            if (confirm('Create invoice from this schedule now? This will generate an invoice for the current billing period.')) {
+                Utils.showLoading(true);
+                
+                // Get the schedule details
+                const schedulesResponse = await apiService.getBillingSchedules();
+                if (!schedulesResponse.success) {
+                    throw new Error('Failed to get schedule details');
+                }
+                
+                const schedule = schedulesResponse.data.find(s => s.schedule_id === scheduleId);
+                if (!schedule) {
+                    throw new Error('Schedule not found');
+                }
+                
+                // Get client details
+                const clientResponse = await apiService.getClient(schedule.client_id);
+                if (!clientResponse.success) {
+                    throw new Error('Failed to get client details');
+                }
+                
+                const client = clientResponse.data;
+                
+                // Prepare invoice data
+                const today = new Date();
+                const dueDate = new Date(today);
+                dueDate.setDate(today.getDate() + (client.payment_terms || 30));
+                
+                const invoiceData = {
+                    client_id: schedule.client_id,
+                    date: today.toISOString().split('T')[0],
+                    due_date: dueDate.toISOString().split('T')[0],
+                    currency: client.currency || 'GHS',
+                    notes: `Auto-generated from billing schedule ${schedule.schedule_id}`,
+                    items: []
+                };
+                
+                // Add schedule items to invoice
+                if (schedule.items && Array.isArray(schedule.items) && schedule.items.length > 0) {
+                    // Use schedule items directly
+                    invoiceData.items = schedule.items.map(item => ({
+                        description: item.description || `Service - ${schedule.billing_frequency}`,
+                        quantity: item.quantity || schedule.quantity || 1,
+                        unit_price: item.unit_price || schedule.billing_amount,
+                        tax_rate: item.tax_rate || schedule.tax_rate || 0
+                    }));
+                } else {
+                    // Create a single item from schedule
+                    invoiceData.items.push({
+                        description: schedule.bill_description || `Recurring service - ${schedule.billing_frequency}`,
+                        quantity: schedule.quantity || 1,
+                        unit_price: schedule.billing_amount,
+                        tax_rate: schedule.tax_rate || 0
+                    });
+                }
+                
+                // Create the invoice
+                const invoiceResponse = await apiService.createInvoice(invoiceData);
+                
+                if (invoiceResponse.success) {
+                    // Update schedule with new next billing date
+                    await this.updateNextBillingDate(schedule);
+                    
+                    Utils.showNotification(`Invoice ${invoiceResponse.data.invoiceNumber} created successfully!`, 'success');
+                    
+                    // Offer to view the invoice
+                    if (confirm('Invoice created successfully! Would you like to view it now?')) {
+                        this.viewGeneratedInvoice(invoiceResponse.data.invoiceId || invoiceResponse.data.invoice_id);
+                    }
+                } else {
+                    throw new Error(invoiceResponse.error || 'Failed to create invoice');
+                }
+            }
+        } catch (error) {
+            console.error('Error creating invoice from schedule:', error);
+            Utils.showNotification(`Error: ${error.message}`, 'danger');
+        } finally {
+            Utils.showLoading(false);
         }
     }
 
-    addContract() {
-        Utils.showNotification('Add contract feature coming soon!', 'info');
+    async updateNextBillingDate(schedule) {
+        try {
+            // Calculate next billing date based on frequency
+            const nextDate = this.calculateNextBillingDate(
+                schedule.billing_frequency,
+                schedule.billing_day,
+                schedule.billing_cycle,
+                schedule.next_billing_date || new Date()
+            );
+            
+            // Update schedule in the system
+            const updateData = {
+                schedule_id: schedule.schedule_id,
+                last_billed_date: new Date().toISOString().split('T')[0],
+                next_billing_date: nextDate.toISOString().split('T')[0],
+                cycles_completed: (schedule.cycles_completed || 0) + 1,
+                last_modified: new Date().toISOString()
+            };
+            
+            // If your API has an updateBillingSchedule function, call it here
+            // For now, we'll just log the update
+            console.log('Schedule would be updated with:', updateData);
+            
+            // You can implement this once updateBillingSchedule API is available:
+            // const updateResponse = await apiService.updateBillingSchedule(updateData);
+            // if (!updateResponse.success) {
+            //     console.warn('Failed to update schedule:', updateResponse.error);
+            // }
+            
+        } catch (error) {
+            console.error('Error updating next billing date:', error);
+            // Don't fail the whole process if this update fails
+        }
     }
 
-    addBillingSchedule() {
-        Utils.showNotification('Add billing schedule feature coming soon!', 'info');
+    calculateNextBillingDate(frequency, billingDay = 1, billingCycle = 'END_OF_MONTH', fromDate = null) {
+        const date = fromDate ? new Date(fromDate) : new Date();
+        
+        switch(frequency.toUpperCase()) {
+            case 'DAILY':
+                date.setDate(date.getDate() + 1);
+                break;
+                
+            case 'WEEKLY':
+                date.setDate(date.getDate() + 7);
+                break;
+                
+            case 'BIWEEKLY':
+                date.setDate(date.getDate() + 14);
+                break;
+                
+            case 'MONTHLY':
+                date.setMonth(date.getMonth() + 1);
+                if (billingCycle === 'FIRST_OF_MONTH') {
+                    date.setDate(1);
+                } else if (billingCycle === 'END_OF_MONTH') {
+                    date.setMonth(date.getMonth() + 1);
+                    date.setDate(0); // Last day of next month
+                } else {
+                    // Specific day of month
+                    const day = parseInt(billingDay) || 1;
+                    date.setDate(Math.min(day, this.getDaysInMonth(date)));
+                }
+                break;
+                
+            case 'QUARTERLY':
+                date.setMonth(date.getMonth() + 3);
+                if (billingCycle === 'FIRST_OF_QUARTER') {
+                    const quarterStartMonth = Math.floor(date.getMonth() / 3) * 3;
+                    date.setMonth(quarterStartMonth);
+                    date.setDate(1);
+                } else {
+                    const day = parseInt(billingDay) || 1;
+                    date.setDate(Math.min(day, this.getDaysInMonth(date)));
+                }
+                break;
+                
+            case 'YEARLY':
+                date.setFullYear(date.getFullYear() + 1);
+                const day = parseInt(billingDay) || 1;
+                date.setDate(Math.min(day, this.getDaysInMonth(date)));
+                break;
+                
+            default:
+                // Custom number of days
+                const days = parseInt(frequency) || 30;
+                date.setDate(date.getDate() + days);
+        }
+        
+        return date;
     }
 
-    editContract(contractId) {
-        Utils.showNotification('Edit contract feature coming soon!', 'info');
+    getDaysInMonth(date) {
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
     }
 
-    editSchedule(scheduleId) {
-        Utils.showNotification('Edit schedule feature coming soon!', 'info');
+    async viewGeneratedInvoice(invoiceId) {
+        try {
+            const response = await apiService.getInvoice(invoiceId);
+            if (response.success) {
+                this.showInvoiceModal(response.data);
+            } else {
+                Utils.showNotification('Invoice created but could not load details', 'warning');
+            }
+        } catch (error) {
+            console.error('Error loading invoice:', error);
+            Utils.showNotification('Error loading invoice details', 'danger');
+        }
     }
 
-    addScheduleToContract(contractId) {
-        Utils.showNotification('Add schedule to contract feature coming soon!', 'info');
+    showScheduleModal(schedule) {
+        const client = this.app.state.clients.find(c => c.client_id === schedule.client_id);
+        
+        const modalHtml = `
+            <div class="modal fade" id="scheduleModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Billing Schedule Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Schedule Information</h6>
+                                    <p><strong>Schedule ID:</strong> ${schedule.schedule_id.substring(0, 12)}...</p>
+                                    <p><strong>Frequency:</strong> <span class="badge bg-info">${schedule.billing_frequency}</span></p>
+                                    <p><strong>Status:</strong> 
+                                        <span class="badge ${schedule.status === 'ACTIVE' ? 'bg-success' : 
+                                                         schedule.status === 'PAUSED' ? 'bg-warning' : 'bg-secondary'}">
+                                            ${schedule.status}
+                                        </span>
+                                    </p>
+                                    <p><strong>Auto-generate:</strong> ${schedule.auto_generate ? 'Yes' : 'No'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Billing Details</h6>
+                                    <p><strong>Next Billing Date:</strong> ${Utils.formatDate(schedule.next_billing_date)}</p>
+                                    <p><strong>Last Billed Date:</strong> ${schedule.last_billed_date ? Utils.formatDate(schedule.last_billed_date) : 'Never'}</p>
+                                    <p><strong>Amount:</strong> ${Utils.formatCurrency(schedule.billing_amount)}</p>
+                                    <p><strong>Cycles:</strong> ${schedule.cycles_completed || 0} / ${schedule.total_cycles || '∞'}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>Client Information</h6>
+                                    ${client ? `
+                                        <p><strong>Company:</strong> ${client.company_name}</p>
+                                        <p><strong>Contact:</strong> ${client.contact_person}</p>
+                                        <p><strong>Email:</strong> ${client.email}</p>
+                                    ` : '<p class="text-muted">Client information not available</p>'}
+                                </div>
+                            </div>
+                            
+                            ${schedule.items && schedule.items.length > 0 ? `
+                                <hr>
+                                <h6>Schedule Items</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Quantity</th>
+                                                <th>Unit Price</th>
+                                                <th>Tax Rate</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${schedule.items.map(item => `
+                                                <tr>
+                                                    <td>${item.description || 'Service'}</td>
+                                                    <td>${item.quantity || 1}</td>
+                                                    <td>${Utils.formatCurrency(item.unit_price || schedule.billing_amount)}</td>
+                                                    <td>${item.tax_rate || schedule.tax_rate || 0}%</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="billingPage.createInvoiceFromSchedule('${schedule.schedule_id}')">
+                                <i class="bi bi-plus-circle me-1"></i>Create Invoice Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
+        modal.show();
+        
+        // Remove modal from DOM after it's hidden
+        document.getElementById('scheduleModal').addEventListener('hidden.bs.modal', function () {
+            modalContainer.remove();
+        });
+    }
+
+    showInvoiceModal(invoice) {
+        const modalHtml = `
+            <div class="modal fade" id="invoiceModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Invoice ${invoice.invoice_number}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <h6>Invoice Details</h6>
+                                    <p><strong>Status:</strong> 
+                                        <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
+                                            ${invoice.status}
+                                        </span>
+                                    </p>
+                                    <p><strong>Date:</strong> ${Utils.formatDate(invoice.date)}</p>
+                                    <p><strong>Due Date:</strong> ${Utils.formatDate(invoice.due_date)}</p>
+                                    <p><strong>Total:</strong> ${Utils.formatCurrency(invoice.total)}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Client Information</h6>
+                                    ${invoice.client ? `
+                                        <p><strong>Company:</strong> ${invoice.client.company_name}</p>
+                                        <p><strong>Contact:</strong> ${invoice.client.contact_person}</p>
+                                        <p><strong>Email:</strong> ${invoice.client.email}</p>
+                                    ` : '<p class="text-muted">Client information not available</p>'}
+                                </div>
+                            </div>
+                            
+                            ${invoice.items && invoice.items.length > 0 ? `
+                                <h6>Items</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th>Quantity</th>
+                                                <th>Unit Price</th>
+                                                <th>Tax</th>
+                                                <th>Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${invoice.items.map(item => {
+                                                const amount = (item.quantity || 1) * (item.unit_price || 0);
+                                                const tax = amount * ((item.tax_rate || 0) / 100);
+                                                return `
+                                                    <tr>
+                                                        <td>${item.description}</td>
+                                                        <td>${item.quantity || 1}</td>
+                                                        <td>${Utils.formatCurrency(item.unit_price || 0)}</td>
+                                                        <td>${item.tax_rate || 0}%</td>
+                                                        <td>${Utils.formatCurrency(amount)}</td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                            <tr class="table-light">
+                                                <td colspan="4" class="text-end"><strong>Subtotal:</strong></td>
+                                                <td><strong>${Utils.formatCurrency(invoice.subtotal || 0)}</strong></td>
+                                            </tr>
+                                            <tr class="table-light">
+                                                <td colspan="4" class="text-end"><strong>Tax:</strong></td>
+                                                <td><strong>${Utils.formatCurrency(invoice.tax || 0)}</strong></td>
+                                            </tr>
+                                            <tr class="table-success">
+                                                <td colspan="4" class="text-end"><strong>Total:</strong></td>
+                                                <td><strong>${Utils.formatCurrency(invoice.total || 0)}</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : ''}
+                            
+                            ${invoice.notes ? `
+                                <hr>
+                                <h6>Notes</h6>
+                                <div class="bg-light p-3 rounded">
+                                    ${invoice.notes}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" onclick="app.loadPage('invoices')">
+                                View All Invoices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to DOM
+        const modalContainer = document.createElement('div');
+        modalContainer.innerHTML = modalHtml;
+        document.body.appendChild(modalContainer);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
+        modal.show();
+        
+        // Remove modal from DOM after it's hidden
+        document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
+            modalContainer.remove();
+        });
     }
 
     showContractModal(contract) {
@@ -568,6 +956,26 @@ class BillingPage {
         });
     }
 
+    addContract() {
+        Utils.showNotification('Add contract feature coming soon!', 'info');
+    }
+
+    addBillingSchedule() {
+        Utils.showNotification('Add billing schedule feature coming soon!', 'info');
+    }
+
+    editContract(contractId) {
+        Utils.showNotification('Edit contract feature coming soon!', 'info');
+    }
+
+    editSchedule(scheduleId) {
+        Utils.showNotification('Edit schedule feature coming soon!', 'info');
+    }
+
+    addScheduleToContract(contractId) {
+        Utils.showNotification('Add schedule to contract feature coming soon!', 'info');
+    }
+
     getErrorTemplate(error) {
         return `
             <div class="alert alert-danger">
@@ -602,3 +1010,4 @@ class BillingPage {
 
 // Export the class
 window.BillingPage = BillingPage;
+[file content end]
