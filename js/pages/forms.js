@@ -48,7 +48,7 @@ class FormsPage {
         return `
             <div class="container-fluid">
                 <div class="row justify-content-center">
-                    <div class="col-lg-10">
+                    <div class="col-lg-12">
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="mb-0">Add New Client</h5>
@@ -145,7 +145,7 @@ class FormsPage {
                                             </div>
                                         </div>
                                         
-                                        <!-- Tab 2: Billing Terms -->
+                                        <!-- Tab 2: Billing Terms (3-Column Layout) -->
                                         <div class="tab-pane fade" id="billingTermsTab">
                                             <div class="alert alert-info mb-4">
                                                 <i class="bi bi-info-circle me-2"></i>
@@ -153,8 +153,8 @@ class FormsPage {
                                             </div>
                                             
                                             <div class="row g-3">
-                                                <!-- Column 1 -->
-                                                <div class="col-md-6">
+                                                <!-- Column 1: Billing Frequency & Amount -->
+                                                <div class="col-md-4">
                                                     <div class="mb-3">
                                                         <label class="form-label">Billing Frequency *</label>
                                                         <select class="form-select" name="billing_frequency" required>
@@ -176,19 +176,12 @@ class FormsPage {
                                                     <div class="mb-3">
                                                         <label class="form-label">Tax Rate (%)</label>
                                                         <input type="number" class="form-control" name="tax_rate" value="0" step="0.01" min="0" max="100">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Tax Inclusive</label>
-                                                        <select class="form-select" name="tax_inclusive">
-                                                            <option value="false">No</option>
-                                                            <option value="true">Yes</option>
-                                                        </select>
-                                                        <div class="form-text">If "Yes", tax is included in the amount above</div>
+                                                        <div class="form-text">Tax percentage to apply</div>
                                                     </div>
                                                 </div>
                                                 
-                                                <!-- Column 2 -->
-                                                <div class="col-md-6">
+                                                <!-- Column 2: Dates & Terms -->
+                                                <div class="col-md-4">
                                                     <div class="mb-3">
                                                         <label class="form-label">Start Date *</label>
                                                         <input type="date" class="form-control" name="start_date" value="${today}" required>
@@ -200,32 +193,38 @@ class FormsPage {
                                                         <div class="form-text">Leave empty for ongoing billing</div>
                                                     </div>
                                                     <div class="mb-3">
+                                                        <label class="form-label">Payment Terms (days) *</label>
+                                                        <input type="number" class="form-control" name="payment_terms" value="30" min="1" required>
+                                                        <div class="form-text">Days client has to pay</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Column 3: Additional Settings -->
+                                                <div class="col-md-4">
+                                                    <div class="mb-3">
                                                         <label class="form-label">Quantity (Units)</label>
                                                         <input type="number" class="form-control" name="quantity" value="1" min="1" step="1">
                                                         <div class="form-text">Number of units to bill</div>
                                                     </div>
                                                     <div class="mb-3">
-                                                        <label class="form-label">Payment Terms (days) *</label>
-                                                        <input type="number" class="form-control" name="payment_terms" value="30" min="1" required>
-                                                        <div class="form-text">Number of days client has to pay</div>
+                                                        <label class="form-label">Tax Inclusive</label>
+                                                        <select class="form-select" name="tax_inclusive">
+                                                            <option value="false">No</option>
+                                                            <option value="true">Yes</option>
+                                                        </select>
+                                                        <div class="form-text">If "Yes", tax is included in amount</div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Description of Bill -->
-                                            <div class="row">
-                                                <div class="col-12">
                                                     <div class="mb-3">
-                                                        <label class="form-label">Description of Bill *</label>
-                                                        <textarea class="form-control" name="bill_description" rows="3" placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
-                                                        <div class="form-text">This description will appear on generated invoices</div>
+                                                        <label class="form-label">Billing Day of Month</label>
+                                                        <input type="number" class="form-control" name="billing_day" value="1" min="1" max="31">
+                                                        <div class="form-text">For monthly billing only</div>
                                                     </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Auto-renew toggle -->
-                                            <div class="row">
-                                                <div class="col-12">
+                                            <!-- Auto-renew toggle and Reminders (Full width) -->
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" type="checkbox" id="autoRenewSwitch" name="auto_renew" value="true">
@@ -234,22 +233,22 @@ class FormsPage {
                                                         <div class="form-text">When enabled, billing will automatically continue after end date</div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                            
-                                            <!-- Billing Day/Time options -->
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="mb-3">
-                                                        <label class="form-label">Billing Day of Month</label>
-                                                        <input type="number" class="form-control" name="billing_day" value="1" min="1" max="31">
-                                                        <div class="form-text">For monthly billing: day of month to bill (1-31)</div>
-                                                    </div>
-                                                </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Send Reminders (days before due)</label>
                                                         <input type="text" class="form-control" name="reminder_days" placeholder="7,3,1">
-                                                        <div class="form-text">Comma-separated: days before due date to send reminders</div>
+                                                        <div class="form-text">Comma-separated days before due date</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Description of Bill (Full width) -->
+                                            <div class="row mt-2">
+                                                <div class="col-12">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Description of Bill *</label>
+                                                        <textarea class="form-control" name="bill_description" rows="3" placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
+                                                        <div class="form-text">This description will appear on generated invoices</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -275,7 +274,7 @@ class FormsPage {
 
     getInvoiceFormTemplate() {
         const clientOptions = this.clients.map(client => 
-            `<option value="${client.client_id}">${client.company_name} (${client.client_code || ''})</option>`
+            '<option value="' + client.client_id + '">' + client.company_name + ' (' + (client.client_code || '') + ')</option>'
         ).join('');
         
         const today = new Date().toISOString().split('T')[0];
@@ -421,13 +420,17 @@ class FormsPage {
                 const value = pair[1];
                 
                 if (key === 'tags' && value) {
-                    clientData[key] = value.split(',').map(tag => tag.trim());
-                } else if (['billing_amount', 'payment_terms', 'tax_rate', 'quantity', 'billing_day'].includes(key)) {
+                    clientData[key] = value.split(',').map(function(tag) { return tag.trim(); });
+                } else if (['billing_amount', 'payment_terms', 'tax_rate', 'quantity', 'billing_day'].indexOf(key) >= 0) {
                     clientData[key] = parseFloat(value) || 0;
                 } else if (key === 'tax_inclusive' || key === 'auto_renew') {
                     clientData[key] = value === 'true';
                 } else if (key === 'reminder_days' && value) {
-                    clientData[key] = value.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day));
+                    clientData[key] = value.split(',').map(function(day) { 
+                        return parseInt(day.trim()); 
+                    }).filter(function(day) { 
+                        return !isNaN(day); 
+                    });
                 } else {
                     clientData[key] = value;
                 }
@@ -461,7 +464,9 @@ class FormsPage {
                 'bill_description', 'auto_renew', 'billing_day', 'reminder_days'
             ];
             
-            billingFields.forEach(field => delete clientData[field]);
+            billingFields.forEach(function(field) {
+                delete clientData[field];
+            });
             
             // Add billing schedule data
             clientData.billing_schedule = billingSchedule;
@@ -474,7 +479,20 @@ class FormsPage {
                 try {
                     const scheduleResponse = await apiService.addBillingSchedule({
                         client_id: response.data.clientId || response.data.client_id,
-                        ...billingSchedule
+                        billing_frequency: billingSchedule.billing_frequency,
+                        billing_amount: billingSchedule.billing_amount,
+                        tax_rate: billingSchedule.tax_rate,
+                        tax_inclusive: billingSchedule.tax_inclusive,
+                        quantity: billingSchedule.quantity,
+                        start_date: billingSchedule.start_date,
+                        end_date: billingSchedule.end_date,
+                        payment_terms: billingSchedule.payment_terms,
+                        bill_description: billingSchedule.bill_description,
+                        auto_renew: billingSchedule.auto_renew,
+                        billing_day: billingSchedule.billing_day,
+                        reminder_days: billingSchedule.reminder_days,
+                        status: billingSchedule.status,
+                        auto_generate: billingSchedule.auto_generate
                     });
                     
                     if (scheduleResponse.success) {
@@ -520,7 +538,7 @@ class FormsPage {
             
             // Gather items
             const items = document.querySelectorAll('.invoice-item');
-            items.forEach(item => {
+            items.forEach(function(item) {
                 const description = item.querySelector('.item-description').value;
                 const quantity = parseFloat(item.querySelector('.item-quantity').value) || 1;
                 const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
@@ -591,7 +609,7 @@ class FormsPage {
         let subtotal = 0;
         let tax = 0;
         
-        items.forEach(item => {
+        items.forEach(function(item) {
             const quantity = parseFloat(item.querySelector('.item-quantity').value) || 0;
             const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
             const taxRate = parseFloat(item.querySelector('.item-tax-rate').value) || 0;
@@ -636,9 +654,9 @@ class FormsPage {
         
         // Initialize tabs for client form
         if (this.currentForm === 'client-form') {
-            setTimeout(() => {
+            setTimeout(function() {
                 const triggerTabList = document.querySelectorAll('#clientFormTabs button');
-                triggerTabList.forEach(triggerEl => {
+                triggerTabList.forEach(function(triggerEl) {
                     triggerEl.addEventListener('click', function(event) {
                         event.preventDefault();
                         const tab = new bootstrap.Tab(this);
