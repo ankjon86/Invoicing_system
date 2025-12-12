@@ -13,12 +13,17 @@ const Utils = {
     },
 
     // Format currency
-    formatCurrency: function(amount) {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount || 0);
-    },
+formatCurrency: function(amount, currency = 'USD') {
+    const currencyOptions = {
+        'GHS': { style: 'currency', currency: 'GHS' },
+        'USD': { style: 'currency', currency: 'USD' },
+        'EUR': { style: 'currency', currency: 'EUR' },
+        'GBP': { style: 'currency', currency: 'GBP' }
+    };
+    
+    return new Intl.NumberFormat('en-GH', currencyOptions[currency] || currencyOptions['USD'])
+        .format(amount || 0);
+},
 
     // Generate unique ID
     generateId: function() {
@@ -188,6 +193,8 @@ const Utils = {
         this.showNotification('File downloaded successfully!', 'success');
     }
 };
+
+
 
 // Make Utils available globally
 window.Utils = Utils;
