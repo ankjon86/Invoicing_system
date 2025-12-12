@@ -195,7 +195,7 @@ class InvoicesPage {
                 <tr>
                     <td>
                         <strong>${invoice.invoice_number || 'N/A'}</strong>
-                        <div class="text-muted small">${invoice.invoice_id.substring(0, 8)}...</div>
+                        <div class="text-muted small">${invoice.invoice_id ? invoice.invoice_id.substring(0, 8) + '...' : ''}</div>
                     </td>
                     <td>
                         <div class="fw-semibold">${client ? client.company_name : 'Unknown Client'}</div>
@@ -591,7 +591,6 @@ class InvoicesPage {
         
         try {
             Utils.showLoading(true);
-            // Note: You need to add updateInvoiceStatus method to apiService
             const response = await apiService.updateInvoiceStatus({
                 invoice_id: invoiceId,
                 status: 'PAID'
