@@ -25,7 +25,7 @@ class FormsPage {
             return this.getTemplate();
             
         } catch (error) {
-            console.error(`Error loading ${formType}:`, error);
+            console.error('Error loading ' + formType + ':', error);
             return this.getErrorTemplate(error);
         }
     }
@@ -145,7 +145,7 @@ class FormsPage {
                                             </div>
                                         </div>
                                         
-                                        <!-- Tab 2: Billing Terms (For Invoice Generation) -->
+                                        <!-- Tab 2: Billing Terms -->
                                         <div class="tab-pane fade" id="billingTermsTab">
                                             <div class="alert alert-info mb-4">
                                                 <i class="bi bi-info-circle me-2"></i>
@@ -171,13 +171,11 @@ class FormsPage {
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Amount *</label>
-                                                        <input type="number" class="form-control" name="billing_amount" 
-                                                               placeholder="0.00" step="0.01" required>
+                                                        <input type="number" class="form-control" name="billing_amount" placeholder="0.00" step="0.01" required>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Tax Rate (%)</label>
-                                                        <input type="number" class="form-control" name="tax_rate" 
-                                                               value="0" step="0.01" min="0" max="100">
+                                                        <input type="number" class="form-control" name="tax_rate" value="0" step="0.01" min="0" max="100">
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Tax Inclusive</label>
@@ -193,26 +191,22 @@ class FormsPage {
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Start Date *</label>
-                                                        <input type="date" class="form-control" name="start_date" 
-                                                               value="${today}" required>
+                                                        <input type="date" class="form-control" name="start_date" value="${today}" required>
                                                         <div class="form-text">First billing date</div>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">End Date</label>
-                                                        <input type="date" class="form-control" name="end_date" 
-                                                               value="${nextMonthDate}">
+                                                        <input type="date" class="form-control" name="end_date" value="${nextMonthDate}">
                                                         <div class="form-text">Leave empty for ongoing billing</div>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Quantity (Units)</label>
-                                                        <input type="number" class="form-control" name="quantity" 
-                                                               value="1" min="1" step="1">
+                                                        <input type="number" class="form-control" name="quantity" value="1" min="1" step="1">
                                                         <div class="form-text">Number of units to bill</div>
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Payment Terms (days) *</label>
-                                                        <input type="number" class="form-control" name="payment_terms" 
-                                                               value="30" min="1" required>
+                                                        <input type="number" class="form-control" name="payment_terms" value="30" min="1" required>
                                                         <div class="form-text">Number of days client has to pay</div>
                                                     </div>
                                                 </div>
@@ -223,8 +217,7 @@ class FormsPage {
                                                 <div class="col-12">
                                                     <div class="mb-3">
                                                         <label class="form-label">Description of Bill *</label>
-                                                        <textarea class="form-control" name="bill_description" rows="3" 
-                                                                  placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
+                                                        <textarea class="form-control" name="bill_description" rows="3" placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
                                                         <div class="form-text">This description will appear on generated invoices</div>
                                                     </div>
                                                 </div>
@@ -236,9 +229,7 @@ class FormsPage {
                                                     <div class="mb-3">
                                                         <div class="form-check form-switch">
                                                             <input class="form-check-input" type="checkbox" id="autoRenewSwitch" name="auto_renew" value="true">
-                                                            <label class="form-check-label" for="autoRenewSwitch">
-                                                                Auto-renew billing schedule
-                                                            </label>
+                                                            <label class="form-check-label" for="autoRenewSwitch">Auto-renew billing schedule</label>
                                                         </div>
                                                         <div class="form-text">When enabled, billing will automatically continue after end date</div>
                                                     </div>
@@ -250,16 +241,14 @@ class FormsPage {
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Billing Day of Month</label>
-                                                        <input type="number" class="form-control" name="billing_day" 
-                                                               value="1" min="1" max="31">
+                                                        <input type="number" class="form-control" name="billing_day" value="1" min="1" max="31">
                                                         <div class="form-text">For monthly billing: day of month to bill (1-31)</div>
                                                     </div>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <div class="mb-3">
                                                         <label class="form-label">Send Reminders (days before due)</label>
-                                                        <input type="text" class="form-control" name="reminder_days" 
-                                                               placeholder="7,3,1">
+                                                        <input type="text" class="form-control" name="reminder_days" placeholder="7,3,1">
                                                         <div class="form-text">Comma-separated: days before due date to send reminders</div>
                                                     </div>
                                                 </div>
@@ -269,16 +258,10 @@ class FormsPage {
                                     
                                     <!-- Form Actions -->
                                     <div class="d-flex justify-content-between mt-4">
-                                        <button type="button" class="btn btn-secondary" onclick="app.loadPage('clients')">
-                                            Cancel
-                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="app.loadPage('clients')">Cancel</button>
                                         <div>
-                                            <button type="button" class="btn btn-outline-primary me-2" onclick="formsPage.saveAsDraft()">
-                                                Save as Draft
-                                            </button>
-                                            <button type="submit" class="btn btn-primary">
-                                                <i class="bi bi-save me-2"></i>Save Client
-                                            </button>
+                                            <button type="button" class="btn btn-outline-primary me-2" onclick="formsPage.saveAsDraft()">Save as Draft</button>
+                                            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save Client</button>
                                         </div>
                                     </div>
                                 </form>
@@ -291,6 +274,15 @@ class FormsPage {
     }
 
     getInvoiceFormTemplate() {
+        const clientOptions = this.clients.map(client => 
+            `<option value="${client.client_id}">${client.company_name} (${client.client_code || ''})</option>`
+        ).join('');
+        
+        const today = new Date().toISOString().split('T')[0];
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 30);
+        const dueDateStr = dueDate.toISOString().split('T')[0];
+        
         return `
             <div class="container-fluid">
                 <div class="row justify-content-center">
@@ -308,21 +300,16 @@ class FormsPage {
                                                 <label class="form-label">Select Client *</label>
                                                 <select class="form-select" name="client_id" required>
                                                     <option value="">Choose a client...</option>
-                                                    ${this.clients.map(client => `
-                                                        <option value="${client.client_id}">
-                                                            ${client.company_name} (${client.client_code || ''})
-                                                        </option>
-                                                    `).join('')}
+                                                    ${clientOptions}
                                                 </select>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Invoice Date</label>
-                                                <input type="date" class="form-control" name="date" 
-                                                       value="${new Date().toISOString().split('T')[0]}" required>
+                                                <input type="date" class="form-control" name="date" value="${today}" required>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Due Date *</label>
-                                                <input type="date" class="form-control" name="due_date" required>
+                                                <input type="date" class="form-control" name="due_date" value="${dueDateStr}" required>
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label">Currency</label>
@@ -342,28 +329,23 @@ class FormsPage {
                                             <div class="invoice-item row g-3 mb-3">
                                                 <div class="col-md-5">
                                                     <label class="form-label">Description *</label>
-                                                    <input type="text" class="form-control item-description" 
-                                                           placeholder="Item description" required>
+                                                    <input type="text" class="form-control item-description" placeholder="Item description" required>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label">Quantity</label>
-                                                    <input type="number" class="form-control item-quantity" 
-                                                           value="1" min="1" step="1">
+                                                    <input type="number" class="form-control item-quantity" value="1" min="1" step="1">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label">Unit Price *</label>
-                                                    <input type="number" class="form-control item-unit-price" 
-                                                           placeholder="0.00" step="0.01" required>
+                                                    <input type="number" class="form-control item-unit-price" placeholder="0.00" step="0.01" required>
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label">Tax Rate (%)</label>
-                                                    <input type="number" class="form-control item-tax-rate" 
-                                                           value="0" step="0.01">
+                                                    <input type="number" class="form-control item-tax-rate" value="0" step="0.01">
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label">&nbsp;</label>
-                                                    <button type="button" class="btn btn-danger w-100" 
-                                                            onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
+                                                    <button type="button" class="btn btn-danger w-100" onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
                                                         <i class="bi bi-trash"></i>
                                                     </button>
                                                 </div>
@@ -405,19 +387,14 @@ class FormsPage {
                                         <div class="row">
                                             <div class="col-12">
                                                 <label class="form-label">Notes</label>
-                                                <textarea class="form-control" name="notes" rows="3" 
-                                                          placeholder="Additional notes for the client..."></textarea>
+                                                <textarea class="form-control" name="notes" rows="3" placeholder="Additional notes for the client..."></textarea>
                                             </div>
                                         </div>
                                     </div>
                                     
                                     <div class="d-flex justify-content-between">
-                                        <button type="button" class="btn btn-secondary" onclick="app.loadPage('invoices')">
-                                            Cancel
-                                        </button>
-                                        <button type="submit" class="btn btn-primary">
-                                            <i class="bi bi-send me-2"></i>Create Invoice
-                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="app.loadPage('invoices')">Cancel</button>
+                                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-2"></i>Create Invoice</button>
                                     </div>
                                 </form>
                             </div>
@@ -425,20 +402,6 @@ class FormsPage {
                     </div>
                 </div>
             </div>
-            
-            <script>
-                // Set default due date to 30 days from now
-                const dueDateInput = document.querySelector('input[name="due_date"]');
-                const today = new Date();
-                const dueDate = new Date(today);
-                dueDate.setDate(today.getDate() + 30);
-                if (dueDateInput) {
-                    dueDateInput.value = dueDate.toISOString().split('T')[0];
-                }
-                
-                // Initialize calculations
-                formsPage.calculateInvoiceTotal();
-            </script>
         `;
     }
 
@@ -453,10 +416,13 @@ class FormsPage {
             const clientData = {};
             
             // Convert FormData to object
-            for (const [key, value] of formData.entries()) {
+            for (const pair of formData.entries()) {
+                const key = pair[0];
+                const value = pair[1];
+                
                 if (key === 'tags' && value) {
                     clientData[key] = value.split(',').map(tag => tag.trim());
-                } else if (key === 'billing_amount' || key === 'payment_terms' || key === 'tax_rate' || key === 'quantity' || key === 'billing_day') {
+                } else if (['billing_amount', 'payment_terms', 'tax_rate', 'quantity', 'billing_day'].includes(key)) {
                     clientData[key] = parseFloat(value) || 0;
                 } else if (key === 'tax_inclusive' || key === 'auto_renew') {
                     clientData[key] = value === 'true';
@@ -562,8 +528,8 @@ class FormsPage {
                 
                 if (description && unitPrice > 0) {
                     invoiceData.items.push({
-                        description,
-                        quantity,
+                        description: description,
+                        quantity: quantity,
                         unit_price: unitPrice,
                         tax_rate: taxRate
                     });
@@ -600,28 +566,19 @@ class FormsPage {
         newItem.className = 'invoice-item row g-3 mb-3';
         newItem.innerHTML = `
             <div class="col-md-5">
-                <input type="text" class="form-control item-description" 
-                       placeholder="Item description" required 
-                       oninput="formsPage.calculateInvoiceTotal()">
+                <input type="text" class="form-control item-description" placeholder="Item description" required oninput="formsPage.calculateInvoiceTotal()">
             </div>
             <div class="col-md-2">
-                <input type="number" class="form-control item-quantity" 
-                       value="1" min="1" step="1" 
-                       oninput="formsPage.calculateInvoiceTotal()">
+                <input type="number" class="form-control item-quantity" value="1" min="1" step="1" oninput="formsPage.calculateInvoiceTotal()">
             </div>
             <div class="col-md-2">
-                <input type="number" class="form-control item-unit-price" 
-                       placeholder="0.00" step="0.01" required 
-                       oninput="formsPage.calculateInvoiceTotal()">
+                <input type="number" class="form-control item-unit-price" placeholder="0.00" step="0.01" required oninput="formsPage.calculateInvoiceTotal()">
             </div>
             <div class="col-md-2">
-                <input type="number" class="form-control item-tax-rate" 
-                       value="0" step="0.01" 
-                       oninput="formsPage.calculateInvoiceTotal()">
+                <input type="number" class="form-control item-tax-rate" value="0" step="0.01" oninput="formsPage.calculateInvoiceTotal()">
             </div>
             <div class="col-md-1">
-                <button type="button" class="btn btn-danger w-100" 
-                        onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
+                <button type="button" class="btn btn-danger w-100" onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
                     <i class="bi bi-trash"></i>
                 </button>
             </div>
@@ -680,7 +637,7 @@ class FormsPage {
         // Initialize tabs for client form
         if (this.currentForm === 'client-form') {
             setTimeout(() => {
-                const triggerTabList = [].slice.call(document.querySelectorAll('#clientFormTabs button'));
+                const triggerTabList = document.querySelectorAll('#clientFormTabs button');
                 triggerTabList.forEach(triggerEl => {
                     triggerEl.addEventListener('click', function(event) {
                         event.preventDefault();
