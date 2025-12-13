@@ -32,13 +32,12 @@ class InvoicesPage {
                     <div class="card-body">
                         ${this.invoices.length > 0 ? `
                             <div class="table-responsive">
-                                <table class="table table-hover">
+                                <table class="table">
                                     <thead>
                                         <tr>
                                             <th>Invoice #</th>
                                             <th>Client</th>
                                             <th>Date</th>
-                                            <th>Due Date</th>
                                             <th>Amount</th>
                                             <th>Status</th>
                                             <th>Actions</th>
@@ -47,36 +46,15 @@ class InvoicesPage {
                                     <tbody>
                                         ${this.invoices.map(invoice => `
                                             <tr>
-                                                <td><strong>${invoice.invoice_number || 'N/A'}</strong></td>
+                                                <td>${invoice.invoice_number || 'N/A'}</td>
                                                 <td>${this.getClientName(invoice.client_id)}</td>
                                                 <td>${Utils.formatDate(invoice.date)}</td>
-                                                <td>${Utils.formatDate(invoice.due_date)}</td>
                                                 <td>${Utils.formatCurrency(invoice.total)}</td>
+                                                <td><span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">${invoice.status}</span></td>
                                                 <td>
-                                                    <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
-                                                        ${invoice.status || 'UNPAID'}
-                                                    </span>
-                                                    ${this.isOverdue(invoice) ? '<br><small class="text-danger">Overdue</small>' : ''}
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" 
-                                                                onclick="invoicesPage.viewInvoice('${invoice.invoice_id}')"
-                                                                title="View Invoice">
-                                                            <i class="bi bi-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-secondary" 
-                                                                onclick="invoicesPage.editInvoice('${invoice.invoice_id}')"
-                                                                title="Edit Invoice">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-success" 
-                                                                onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')"
-                                                                title="Mark as Paid"
-                                                                ${invoice.status === 'PAID' ? 'disabled' : ''}>
-                                                            <i class="bi bi-check-circle"></i>
-                                                        </button>
-                                                    </div>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="app.loadPage('invoice-view', ${invoice.invoice_id})" title="View Invoice">
+                                                        <i class="bi bi-eye"></i>
+                                                    </button>
                                                 </td>
                                             </tr>
                                         `).join('')}
@@ -87,9 +65,8 @@ class InvoicesPage {
                             <div class="text-center py-5">
                                 <i class="bi bi-receipt display-1 text-muted"></i>
                                 <h4 class="mt-3">No Invoices</h4>
-                                <p class="text-muted mb-4">Create your first invoice to get started</p>
                                 <button class="btn btn-primary" onclick="app.loadPage('invoice-form')">
-                                    <i class="bi bi-plus-circle me-2"></i>Create First Invoice
+                                    Create First Invoice
                                 </button>
                             </div>
                         `}
@@ -101,199 +78,7 @@ class InvoicesPage {
 
     getClientName(clientId) {
         const client = this.app.state.clients.find(c => c.client_id === clientId);
-        return client ? client.company_name : 'Unknown Client';
-    }
-
-    isOverdue(invoice) {
-        if (invoice.status === 'PAID') return false;
-        const dueDate = new Date(invoice.due_date);
-        const today = new Date();
-        return dueDate < today;
-    }
-
-    async viewInvoice(invoiceId) {
-        try {
-            const response = await apiService.getInvoice(invoiceId);
-            if (response.success) {
-                this.showInvoiceModal(response.data);
-            } else {
-                Utils.showNotification('Error loading invoice details', 'danger');
-            }
-        } catch (error) {
-            console.error('Error viewing invoice:', error);
-            Utils.showNotification('Error loading invoice details', 'danger');
-        }
-    }
-
-    async editInvoice(invoiceId) {
-        Utils.showNotification('Edit invoice feature coming soon!', 'info');
-    }
-
-    async markAsPaid(invoiceId) {
-        if (confirm('Mark this invoice as PAID? This action cannot be undone.')) {
-            try {
-                Utils.showLoading(true);
-                const invoiceResponse = await apiService.getInvoice(invoiceId);
-                if (!invoiceResponse.success) {
-                    throw new Error('Invoice not found');
-                }
-                
-                const updateResponse = await apiService.updateInvoiceStatus({
-                    invoice_id: invoiceId,
-                    status: 'PAID'
-                });
-                
-                if (updateResponse.success) {
-                    Utils.showNotification('Invoice marked as PAID successfully!', 'success');
-                    this.app.loadPage('invoices');
-                } else {
-                    throw new Error(updateResponse.error || 'Failed to update invoice status');
-                }
-            } catch (error) {
-                console.error('Error marking invoice as paid:', error);
-                Utils.showNotification('Error: ' + error.message, 'danger');
-            } finally {
-                Utils.showLoading(false);
-            }
-        }
-    }
-
-    showInvoiceModal(invoice) {
-        const client = this.app.state.clients.find(c => c.client_id === invoice.client_id);
-        const isOverdue = this.isOverdue(invoice);
-        
-        const modalHtml = `
-            <div class="modal fade" id="invoiceModal" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Invoice ${invoice.invoice_number}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert ${invoice.status === 'PAID' ? 'alert-success' : isOverdue ? 'alert-danger' : 'alert-warning'}">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <i class="bi ${invoice.status === 'PAID' ? 'bi-check-circle' : isOverdue ? 'bi-exclamation-triangle' : 'bi-clock'} me-2"></i>
-                                        <strong>${invoice.status === 'PAID' ? 'PAID' : 'UNPAID'}</strong>
-                                        ${isOverdue ? ' - <strong>OVERDUE</strong>' : ''}
-                                    </div>
-                                    ${invoice.status !== 'PAID' ? `
-                                        <button class="btn btn-sm btn-success" onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')">
-                                            <i class="bi bi-check-circle me-1"></i>Mark as Paid
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <h6>Invoice Details</h6>
-                                    <p><strong>Date:</strong> ${Utils.formatDate(invoice.date)}</p>
-                                    <p><strong>Due Date:</strong> ${Utils.formatDate(invoice.due_date)}</p>
-                                    <p><strong>Invoice ID:</strong> <code>${invoice.invoice_id}</code></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Client Information</h6>
-                                    ${client ? `
-                                        <p><strong>Company:</strong> ${client.company_name}</p>
-                                        <p><strong>Contact:</strong> ${client.contact_person}</p>
-                                        <p><strong>Email:</strong> ${client.email}</p>
-                                        <p><strong>Phone:</strong> ${client.phone || 'N/A'}</p>
-                                    ` : '<p class="text-muted">Client information not available</p>'}
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-4">
-                                <div class="col-md-8 offset-md-2">
-                                    <div class="card ${invoice.status === 'PAID' ? 'border-success' : isOverdue ? 'border-danger' : 'border-warning'}">
-                                        <div class="card-body">
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <span class="fw-semibold">Subtotal:</span>
-                                                <span>${Utils.formatCurrency(invoice.subtotal || 0)}</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between mb-2">
-                                                <span class="fw-semibold">Tax:</span>
-                                                <span>${Utils.formatCurrency(invoice.tax || 0)}</span>
-                                            </div>
-                                            <hr>
-                                            <div class="d-flex justify-content-between fw-bold fs-5">
-                                                <span>Total Amount:</span>
-                                                <span class="${invoice.status === 'PAID' ? 'text-success' : isOverdue ? 'text-danger' : 'text-warning'}">
-                                                    ${Utils.formatCurrency(invoice.total || 0)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            ${invoice.items && invoice.items.length > 0 ? `
-                                <h6>Invoice Items</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Description</th>
-                                                <th>Quantity</th>
-                                                <th>Unit Price</th>
-                                                <th>Tax Rate</th>
-                                                <th>Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${invoice.items.map(item => {
-                                                const amount = (item.quantity || 1) * (item.unit_price || 0);
-                                                const tax = amount * ((item.tax_rate || 0) / 100);
-                                                return `
-                                                    <tr>
-                                                        <td>${item.description}</td>
-                                                        <td>${item.quantity || 1}</td>
-                                                        <td>${Utils.formatCurrency(item.unit_price || 0)}</td>
-                                                        <td>${item.tax_rate || 0}%</td>
-                                                        <td>${Utils.formatCurrency(amount)}</td>
-                                                    </tr>
-                                                `;
-                                            }).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ` : '<p class="text-muted">No items found for this invoice</p>'}
-                            
-                            ${invoice.notes ? `
-                                <hr>
-                                <h6>Notes</h6>
-                                <div class="bg-light p-3 rounded">
-                                    ${invoice.notes}
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            ${invoice.status !== 'PAID' ? `
-                                <button type="button" class="btn btn-success" onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')">
-                                    <i class="bi bi-check-circle me-1"></i>Mark as Paid
-                                </button>
-                            ` : ''}
-                            <button type="button" class="btn btn-primary" onclick="invoicesPage.editInvoice('${invoice.invoice_id}')">
-                                <i class="bi bi-pencil me-1"></i>Edit Invoice
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = modalHtml;
-        document.body.appendChild(modalContainer);
-        
-        const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
-        modal.show();
-        
-        document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
-            modalContainer.remove();
-        });
+        return client ? client.company_name : 'Unknown';
     }
 
     getErrorTemplate(error) {
@@ -301,15 +86,11 @@ class InvoicesPage {
             <div class="alert alert-danger">
                 <h4>Error Loading Invoices</h4>
                 <p>${error.message}</p>
-                <button class="btn btn-primary" onclick="app.loadPage('invoices')">
-                    Retry
-                </button>
             </div>
         `;
     }
 
     initialize() {
-        window.invoicesPage = this;
         console.log('Invoices page initialized');
     }
 }
