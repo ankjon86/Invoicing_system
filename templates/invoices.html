@@ -1,0 +1,38 @@
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Invoices</h2>
+        <div>
+            <button class="btn btn-primary" data-action="create-invoice">
+                <i class="bi bi-plus-circle me-1"></i> Create Invoice
+            </button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div id="invoicesContent">
+                <!-- Content will be populated based on data -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Modal Template -->
+<template id="invoiceModalTemplate">
+    <div class="modal fade" id="invoiceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="invoiceModalTitle">Invoice Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="invoiceModalBody">
+                    <!-- Modal body will be populated dynamically -->
+                </div>
+                <div class="modal-footer" id="invoiceModalFooter">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
