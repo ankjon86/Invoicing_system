@@ -5,47 +5,50 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Invoice {{INVOICE_NUMBER}}</title>
 
-  <!-- Bootstrap -->
+  <!-- Bootstrap (optional) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
 
   <style>
     :root{
       --brand:#0d6efd;
+      --brand-dark:#0b5ed7;
       --muted:#6c757d;
-      --bg:#f7f9fc;
+      --bg:#f4f7fb;
       --card:#ffffff;
-      --border:#e9ecef;
-      --accent:#0b5ed7;
+      --border:#e6eef6;
+      --accent:#e6f7ff;
     }
 
     html,body{
-      height:100%;
       margin:0;
+      height:100%;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background:var(--bg);
-      color:#222;
+      color:#111;
     }
 
-    .invoice-wrap{
+    .invoice-page {
       max-width: 1000px;
-      margin: 28px auto;
-      padding: 28px;
+      margin: 20px auto;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
-    .invoice-card{
+    .invoice-card {
       background: var(--card);
       border-radius: 10px;
-      box-shadow: 0 8px 30px rgba(18, 38, 63, 0.06);
-      padding: 28px;
-      border: 1px solid var(--border);
+      box-shadow: 0 8px 30px rgba(10,20,40,0.06);
+      overflow: hidden;
+      border:1px solid var(--border);
     }
 
-    .invoice-top{
+    .invoice-top {
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
       gap:16px;
-      margin-bottom:18px;
+      padding:22px 26px;
+      background: linear-gradient(180deg, #fff, #fbfdff);
     }
 
     .brand {
@@ -53,198 +56,210 @@
       gap:12px;
       align-items:center;
     }
+    .brand img { height:64px; width:auto; object-fit:contain; border-radius:6px; }
+    .brand .company-name { font-weight:700; font-size:1.05rem; }
+    .brand .company-tag { color:var(--muted); font-size:0.9rem; }
 
-    .brand img{ max-height:56px; border-radius:6px; }
-    .brand h4{ margin:0; font-size:1.1rem; letter-spacing:0.2px; }
-    .brand .muted{ color:var(--muted); font-size:0.9rem }
-
-    .invoice-meta {
+    .meta {
+      min-width:260px;
       text-align:right;
-      min-width:220px;
     }
-    .invoice-meta .title { font-weight:700; color:var(--brand); font-size:1rem; }
-    .invoice-meta .small { color:var(--muted); font-size:0.88rem; }
+    .meta .label { color:var(--muted); font-size:0.85rem; }
+    .meta .value { font-weight:700; font-size:1rem; margin-bottom:6px; }
+
+    .ribbon {
+      display:inline-block;
+      background: linear-gradient(90deg,var(--brand) 0%, var(--brand-dark) 100%);
+      color:#fff;
+      padding:10px 16px;
+      font-weight:700;
+      border-radius:6px;
+      transform: skewX(-10deg);
+      box-shadow: 0 6px 14px rgba(10,20,40,0.06);
+    }
 
     .addresses {
       display:flex;
-      gap:24px;
-      margin-bottom:20px;
-      flex-wrap:wrap;
+      justify-content:space-between;
+      gap:20px;
+      padding:18px 26px;
+      border-top:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+      background: #ffffff;
     }
-    .address-box{
-      flex:1 1 250px;
-      background: linear-gradient(180deg, #fff, #fbfdff);
-      border: 1px solid var(--border);
-      border-radius:8px;
-      padding:14px;
-    }
-    .address-box h6{ margin:0 0 6px 0; font-size:0.95rem; }
-    .address-box p{ margin:0; color:var(--muted); font-size:0.9rem; }
 
-    .items-table{
+    .address {
+      flex:1 1 300px;
+      min-width:220px;
+    }
+    .address .title { font-weight:700; margin-bottom:6px; }
+    .address .muted { color:var(--muted); font-size:0.92rem; white-space:pre-line; }
+
+    .items-wrap {
+      padding:18px 26px;
+    }
+
+    .items-table {
       width:100%;
       border-collapse:collapse;
-      margin-bottom: 18px;
       font-size:0.95rem;
     }
-    .items-table thead th{
-      background:#f1f5fb;
-      border-bottom:1px solid var(--border);
-      padding:12px;
+    .items-table thead th {
       text-align:left;
-      font-weight:600;
+      padding:10px 8px;
       color:var(--muted);
+      font-weight:600;
+      border-bottom:2px solid var(--border);
       font-size:0.85rem;
     }
-    .items-table tbody td{
-      padding:12px;
-      border-bottom:1px dashed #eef2f6;
+    .items-table tbody td {
+      padding:12px 8px;
+      border-bottom:1px solid #f1f4f8;
       vertical-align:top;
     }
-    .items-table tfoot td{
-      padding:10px 12px;
-      font-weight:700;
-      background:#fafbfd;
-      border-top:1px solid var(--border);
-    }
+    .items-table .right { text-align:right; white-space:nowrap; }
 
-    .text-right { text-align:right; }
-    .text-center { text-align:center; }
-
-    .totals{
+    .totals {
       display:flex;
       justify-content:flex-end;
-      margin-top:8px;
+      padding:12px 26px 22px;
     }
-    .totals .totals-inner{
+    .totals .box {
       min-width:320px;
+      background:var(--accent);
       border-radius:8px;
-      background:#fff;
-      border:1px solid var(--border);
       padding:12px;
+      border:1px solid var(--border);
     }
     .totals .row { display:flex; justify-content:space-between; padding:6px 0; color:var(--muted); }
-    .totals .row strong{ color:#111; }
+    .totals .row strong { color:#111; }
 
-    .notes{
-      margin-top:18px;
-      padding:12px;
-      border-left:4px solid var(--brand);
-      background:#fbfdff;
+    .notes {
+      padding:12px 26px 26px;
       color:var(--muted);
-      border-radius:6px;
+      font-size:0.95rem;
     }
 
-    .actions{
+    .actions {
       display:flex;
-      gap:8px;
       justify-content:flex-end;
-      margin-top:18px;
+      gap:8px;
+      padding:0 26px 26px;
     }
 
-    /* Print */
+    .accent-bar {
+      height:26px;
+      background:linear-gradient(90deg,var(--brand) 0%, var(--brand-dark) 100%);
+    }
+
     @media print {
-      body{ background:white; }
-      .invoice-wrap { margin:0; padding:0; }
       .actions, .no-print { display:none !important; }
-      .invoice-card { box-shadow:none; border: none; padding:0; }
+      .invoice-page { margin:0; padding:0; }
+      .invoice-card { box-shadow:none; border:none; }
     }
 
-    /* Responsive tweaks */
-    @media (max-width:720px){
-      .invoice-top{ flex-direction:column; align-items:flex-start; }
-      .invoice-meta{ text-align:left; width:100%; }
-      .addresses{ flex-direction:column; }
-      .totals{ justify-content:flex-start; }
-      .totals .totals-inner{ width:100%; }
+    @media (max-width:760px) {
+      .invoice-top { flex-direction:column; align-items:flex-start; gap:12px; }
+      .meta { text-align:left; }
+      .addresses { flex-direction:column; gap:12px; }
+      .totals { justify-content:flex-start; }
+      .totals .box { width:100%; }
     }
   </style>
 </head>
 <body>
-  <div class="invoice-wrap">
+  <div class="invoice-page">
     <div class="invoice-card">
       <div class="invoice-top">
         <div class="brand">
           <img src="{{COMPANY_LOGO}}" alt="logo" onerror="this.style.display='none'"/>
           <div>
-            <h4>{{COMPANY_NAME}}</h4>
-            <div class="muted">{{COMPANY_TAGLINE}}</div>
+            <div class="company-name">{{COMPANY_NAME}}</div>
+            <div class="company-tag">{{COMPANY_TAGLINE}}</div>
+            <div class="company-tag" style="margin-top:6px;">{{COMPANY_ADDRESS}}</div>
           </div>
         </div>
 
-        <div class="invoice-meta">
-          <div class="title">Invoice</div>
-          <div class="small">Invoice #: <strong>{{INVOICE_NUMBER}}</strong></div>
-          <div class="small">Date: <strong>{{DATE}}</strong></div>
-          <div class="small">Due: <strong>{{DUE_DATE}}</strong></div>
-          <div class="small">Period: <strong>{{PERIOD}}</strong></div>
+        <div>
+          <div class="ribbon">INVOICE</div>
+        </div>
+
+        <div class="meta">
+          <div class="label">Invoice #</div>
+          <div class="value">{{INVOICE_NUMBER}}</div>
+
+          <div class="label">Date</div>
+          <div class="value">{{DATE}}</div>
+
+          <div class="label">Due Date</div>
+          <div class="value">{{DUE_DATE}}</div>
+
+          <div class="label">Period</div>
+          <div class="value">{{PERIOD}}</div>
         </div>
       </div>
 
       <div class="addresses">
-        <div class="address-box">
-          <h6>Billed To</h6>
-          <p><strong>{{CLIENT_NAME}}</strong></p>
-          <p>{{CLIENT_CONTACT}}</p>
-          <p>{{CLIENT_EMAIL}}</p>
-          <p>{{CLIENT_ADDRESS}}</p>
+        <div class="address">
+          <div class="title">Bill To</div>
+          <div><strong>{{CLIENT_NAME}}</strong></div>
+          <div class="muted">{{CLIENT_CONTACT}}</div>
+          <div class="muted">{{CLIENT_EMAIL}}</div>
+          <div class="muted">{{CLIENT_ADDRESS}}</div>
         </div>
 
-        <div class="address-box">
-          <h6>From</h6>
-          <p><strong>{{BILLER_NAME}}</strong></p>
-          <p class="muted">{{BILLER_ADDRESS}}</p>
-          <p class="muted">{{BILLER_EMAIL}}</p>
+        <div class="address">
+          <div class="title">From</div>
+          <div><strong>{{BILLER_NAME}}</strong></div>
+          <div class="muted">{{BILLER_ADDRESS}}</div>
+          <div class="muted">{{BILLER_EMAIL}}</div>
         </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="items-table">
+      <div class="items-wrap">
+        <table class="items-table" aria-describedby="invoice items">
           <thead>
             <tr>
               <th style="width:56%;">Description</th>
               <th style="width:12%;">Qty</th>
               <th style="width:16%;">Unit Price</th>
-              <th style="width:12%;" class="text-right">Amount</th>
+              <th style="width:16%;" class="right">Amount</th>
             </tr>
           </thead>
           <tbody>
             {{ITEM_ROWS}}
           </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3" class="text-right">Subtotal</td>
-              <td class="text-right">{{SUBTOTAL}}</td>
-            </tr>
-            <tr>
-              <td colspan="3" class="text-right">Tax</td>
-              <td class="text-right">{{TAX}}</td>
-            </tr>
-            <tr>
-              <td colspan="3" class="text-right">Total</td>
-              <td class="text-right">{{TOTAL}}</td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 
-      <div class="notes">
-        <strong>Notes</strong>
-        <div>{{NOTES}}</div>
+      <div class="totals">
+        <div class="box">
+          <div class="row"><div>Subtotal</div><div><strong>{{SUBTOTAL}}</strong></div></div>
+          <div class="row"><div>Tax</div><div><strong>{{TAX}}</strong></div></div>
+          <div class="row" style="border-top:1px dashed rgba(0,0,0,0.06); padding-top:8px; margin-top:6px;">
+            <div>Total</div><div><strong>{{TOTAL}}</strong></div>
+          </div>
+        </div>
       </div>
 
-      <div class="totals">
-        <div class="totals-inner">
-          <div class="row"><span>Payment Terms</span><strong>{{PAYMENT_TERMS}}</strong></div>
-          <div class="row"><span>Reference</span><strong>{{REFERENCE}}</strong></div>
-        </div>
+      <div class="notes">
+        <strong>Notes:</strong>
+        <div>{{NOTES}}</div>
+        <div style="height:8px;"></div>
+        <div>Payment terms: <strong>{{PAYMENT_TERMS}}</strong></div>
       </div>
 
       <div class="actions no-print">
         <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
         <button class="btn btn-primary" onclick="Utils.copyToClipboard(window.location.href)">Copy Link</button>
       </div>
+
+      <div class="accent-bar" aria-hidden="true"></div>
     </div>
   </div>
+
+  <script>
+    // nothing required for template; printing is handled by the host modal print button
+  </script>
 </body>
 </html>
