@@ -60,13 +60,6 @@
     .brand .company-name { font-weight:700; font-size:1.05rem; }
     .brand .company-tag { color:var(--muted); font-size:0.9rem; }
 
-    .meta {
-      min-width:260px;
-      text-align:right;
-    }
-    .meta .label { color:var(--muted); font-size:0.85rem; }
-    .meta .value { font-weight:700; font-size:1rem; margin-bottom:6px; }
-
     .ribbon {
       display:inline-block;
       background: linear-gradient(90deg,var(--brand) 0%, var(--brand-dark) 100%);
@@ -78,7 +71,14 @@
       box-shadow: 0 6px 14px rgba(10,20,40,0.06);
     }
 
-    .addresses {
+    .meta {
+      min-width:260px;
+      text-align:right;
+    }
+    .meta .label { color:var(--muted); font-size:0.85rem; }
+    .meta .value { font-weight:700; font-size:1rem; margin-bottom:6px; }
+
+    .client-row {
       display:flex;
       justify-content:space-between;
       gap:20px;
@@ -86,14 +86,19 @@
       border-top:1px solid var(--border);
       border-bottom:1px solid var(--border);
       background: #ffffff;
+      align-items:flex-start;
+      flex-wrap:wrap;
     }
 
-    .address {
-      flex:1 1 300px;
+    .client {
+      flex:1 1 420px;
       min-width:220px;
     }
-    .address .title { font-weight:700; margin-bottom:6px; }
-    .address .muted { color:var(--muted); font-size:0.92rem; white-space:pre-line; }
+    .client .title { font-weight:700; margin-bottom:6px; }
+    .client .muted { color:var(--muted); font-size:0.92rem; white-space:pre-line; }
+
+    /* STATUS badge position */
+    .status-badge { margin-top:6px; display:inline-block; }
 
     .items-wrap {
       padding:18px 26px;
@@ -161,7 +166,7 @@
     @media (max-width:760px) {
       .invoice-top { flex-direction:column; align-items:flex-start; gap:12px; }
       .meta { text-align:left; }
-      .addresses { flex-direction:column; gap:12px; }
+      .client-row { flex-direction:column; gap:12px; }
       .totals { justify-content:flex-start; }
       .totals .box { width:100%; }
     }
@@ -196,11 +201,13 @@
 
           <div class="label">Period</div>
           <div class="value">{{PERIOD}}</div>
+
+          <div class="status-badge">{{STATUS_BADGE}}</div>
         </div>
       </div>
 
-      <div class="addresses">
-        <div class="address">
+      <div class="client-row">
+        <div class="client">
           <div class="title">Bill To</div>
           <div><strong>{{CLIENT_NAME}}</strong></div>
           <div class="muted">{{CLIENT_CONTACT}}</div>
@@ -208,12 +215,7 @@
           <div class="muted">{{CLIENT_ADDRESS}}</div>
         </div>
 
-        <div class="address">
-          <div class="title">From</div>
-          <div><strong>{{BILLER_NAME}}</strong></div>
-          <div class="muted">{{BILLER_ADDRESS}}</div>
-          <div class="muted">{{BILLER_EMAIL}}</div>
-        </div>
+        <!-- Removed "From" block as requested -->
       </div>
 
       <div class="items-wrap">
@@ -242,12 +244,7 @@
         </div>
       </div>
 
-      <div class="notes">
-        <strong>Notes:</strong>
-        <div>{{NOTES}}</div>
-        <div style="height:8px;"></div>
-        <div>Payment terms: <strong>{{PAYMENT_TERMS}}</strong></div>
-      </div>
+      <!-- Removed notes section as requested -->
 
       <div class="actions no-print">
         <button class="btn btn-outline-secondary" onclick="window.print()">Print</button>
