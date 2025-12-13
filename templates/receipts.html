@@ -1,0 +1,165 @@
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Receipts</h2>
+        <div>
+            <button class="btn btn-primary" data-action="create-receipt">
+                <i class="bi bi-plus-circle me-1"></i> Create Receipt
+            </button>
+            <button class="btn btn-success" data-action="generate-receipts">
+                <i class="bi bi-receipt-cutoff me-1"></i> Generate from Paid Invoices
+            </button>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" 
+                           placeholder="Search receipts..." 
+                           id="receiptSearch" 
+                           data-action="search-receipts">
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="receiptDateFilter" data-action="filter-receipts">
+                        <option value="all">All Dates</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select class="form-select" id="receiptClientFilter" data-action="filter-receipts">
+                        <option value="all">All Clients</option>
+                        <!-- Client options will be populated -->
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Receipts Table -->
+    <div class="card">
+        <div class="card-body">
+            <div id="receiptsContent">
+                <!-- Content will be populated based on data -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal Template -->
+<template id="receiptModalTemplate">
+    <div class="modal fade" id="receiptModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiptModalTitle">Receipt Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="receiptModalBody">
+                    <!-- Modal body will be populated dynamically -->
+                </div>
+                <div class="modal-footer" id="receiptModalFooter">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" data-action="print-receipt">
+                        <i class="bi bi-printer me-1"></i>Print Receipt
+                    </button>
+                    <button type="button" class="btn btn-success" data-action="email-receipt">
+                        <i class="bi bi-envelope me-1"></i>Email Receipt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Receipt Print Template -->
+<template id="receiptPrintTemplate">
+    <div id="printableReceipt" style="display: none;">
+        <div class="receipt-container" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+            <div class="receipt-header" style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px;">
+                <h1 style="margin: 0; color: #2c3e50;">{{companyName}}</h1>
+                <p style="margin: 5px 0; color: #666;">{{companyAddress}}</p>
+                <p style="margin: 5px 0; color: #666;">{{companyContact}}</p>
+                <h2 style="margin: 20px 0 10px 0; color: #2c3e50;">OFFICIAL RECEIPT</h2>
+            </div>
+            
+            <div class="receipt-details" style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                <div class="receipt-info">
+                    <p><strong>Receipt No:</strong> {{receiptNumber}}</p>
+                    <p><strong>Date:</strong> {{receiptDate}}</p>
+                    <p><strong>Invoice No:</strong> {{invoiceNumber}}</p>
+                </div>
+                <div class="client-info">
+                    <p><strong>Client:</strong> {{clientName}}</p>
+                    <p><strong>Address:</strong> {{clientAddress}}</p>
+                    <p><strong>Contact:</strong> {{clientContact}}</p>
+                </div>
+            </div>
+            
+            <div class="receipt-items" style="margin-bottom: 30px;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 12px; text-align: left;">Description</th>
+                            <th style="padding: 12px; text-align: center;">Quantity</th>
+                            <th style="padding: 12px; text-align: right;">Unit Price</th>
+                            <th style="padding: 12px; text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receiptItemsBody">
+                        <!-- Items will be populated -->
+                    </tbody>
+                    <tfoot style="border-top: 2px solid #dee2e6;">
+                        <tr>
+                            <td colspan="3" style="padding: 12px; text-align: right;"><strong>Subtotal:</strong></td>
+                            <td style="padding: 12px; text-align: right;"><strong>{{subtotal}}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" style="padding: 12px; text-align: right;"><strong>Tax:</strong></td>
+                            <td style="padding: 12px; text-align: right;"><strong>{{tax}}</strong></td>
+                        </tr>
+                        <tr style="background-color: #f8f9fa;">
+                            <td colspan="3" style="padding: 12px; text-align: right;"><strong>TOTAL:</strong></td>
+                            <td style="padding: 12px; text-align: right;"><strong>{{total}}</strong></td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" style="padding: 12px;">
+                                <strong>Amount in Words:</strong> {{amountInWords}}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="payment-details" style="margin-bottom: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+                <h4 style="margin-top: 0; color: #2c3e50;">Payment Details</h4>
+                <p><strong>Payment Method:</strong> {{paymentMethod}}</p>
+                <p><strong>Payment Date:</strong> {{paymentDate}}</p>
+                <p><strong>Transaction Reference:</strong> {{transactionRef}}</p>
+                <p><strong>Received By:</strong> {{receivedBy}}</p>
+            </div>
+            
+            <div class="receipt-footer" style="text-align: center; border-top: 2px solid #333; padding-top: 20px; margin-top: 30px;">
+                <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                    <div class="signature" style="text-align: center;">
+                        <div style="border-top: 1px solid #333; width: 200px; margin: 40px auto 10px;"></div>
+                        <p style="margin: 0;">{{preparedBy}}</p>
+                        <p style="margin: 0; color: #666;">Prepared By</p>
+                    </div>
+                    <div class="signature" style="text-align: center;">
+                        <div style="border-top: 1px solid #333; width: 200px; margin: 40px auto 10px;"></div>
+                        <p style="margin: 0;">{{authorizedBy}}</p>
+                        <p style="margin: 0; color: #666;">Authorized Signature</p>
+                    </div>
+                </div>
+                <p style="color: #666; font-size: 12px;">This is an electronically generated receipt. No signature is required.</p>
+                <p style="color: #666; font-size: 12px;">Thank you for your business!</p>
+            </div>
+        </div>
+    </div>
+</template>
