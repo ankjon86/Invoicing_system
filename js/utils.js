@@ -195,26 +195,48 @@ const Utils = {
 
     // --- Template helpers ---
     // Load an HTML template from the templates/ folder
-    loadTemplate: async function(path) {
-        try {
-            const res = await fetch(path, { cache: 'no-cache' });
-            if (!res.ok) throw new Error('Failed to load template: ' + path);
-            return await res.text();
-        } catch (err) {
-            console.error(err);
-            throw err;
-        }
-    },
+ loadTemplate: async function(path) {
+    // Try a few candidate locations in order to avoid "failed to load template" due to path differences
+    const candidates = [
+      path,
+      './' + path,
+      '/' + path,
+      'templates/' + path.replace(/^templates\//, ''),         // accept if caller used weird path
+      './templates/' + path.replace(/^templates\//, ''),
+      '/templates/' + path.replace(/^templates\//, '')
+    ].filter((v, i, a) => a.indexOf(v) === i); // unique
 
-    // Simple template renderer that replaces {{KEY}} placeholders
-    renderTemplate: function(templateString, data = {}) {
-        let out = templateString;
-        Object.keys(data).forEach(key => {
-            const re = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
-            out = out.replace(re, data[key] != null ? data[key] : '');
-        });
-        return out;
+    const errors = [];
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url, { cache: 'no-cache' });
+        if (!res.ok) {
+          errors.push(`${url} -> HTTP ${res.status}`);
+          continue;
+        }
+        const text = await res.text();
+        return text;
+      } catch (err) {
+        errors.push(`${url} -> ${err.message}`);
+      }
     }
+
+    // No candidate loaded successfully — throw informative error
+    const tried = candidates.join(', ');
+    const err = new Error(`Failed to load template: tried paths: ${tried}. Errors: ${errors.join(' | ')}`);
+    console.error(err);
+    throw err;
+  },
+
+  // Simple template renderer that replaces {{KEY}} placeholders
+  renderTemplate: function(templateString, data = {}) {
+    let out = templateString;
+    Object.keys(data).forEach(key => {
+      const re = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+      out = out.replace(re, data[key] != null ? data[key] : '');
+    });
+    return out;
+  }
 };
 
 // Make Utils available globally
