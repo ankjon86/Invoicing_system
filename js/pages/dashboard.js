@@ -9,109 +9,33 @@ class DashboardPage {
 
     async render() {
         try {
-            const [statsResponse, recentClientsResponse, recentInvoicesResponse] = await Promise.all([
+            const [statsResponse, recentClientsResponse, recentInvoicesResponse, template] = await Promise.all([
                 apiService.getDashboardStats(),
                 apiService.getClients({ limit: 5 }),
-                apiService.getInvoices({ limit: 5, sort: 'newest' })
+                apiService.getInvoices({ limit: 5, sort: 'newest' }),
+                Utils.loadTemplate('templates/dashboard.html')
             ]);
 
             this.stats = statsResponse.success ? statsResponse.data : {};
             this.recentClients = recentClientsResponse.success ? recentClientsResponse.data : [];
             this.recentInvoices = recentInvoicesResponse.success ? recentInvoicesResponse.data : [];
 
-            return this.getTemplate();
+            const statsHtml = this.renderStatsCards();
+            const recentClientsHtml = this.renderRecentClients();
+            const recentInvoicesHtml = this.renderRecentInvoices();
+
+            const html = Utils.renderTemplate(template, {
+                'STATS_CARDS': statsHtml,
+                'RECENT_CLIENTS': recentClientsHtml,
+                'RECENT_INVOICES': recentInvoicesHtml
+            });
+
+            return html;
             
         } catch (error) {
             console.error('Error loading dashboard:', error);
             return this.getErrorTemplate(error);
         }
-    }
-
-    getTemplate() {
-        return `
-            <div class="container-fluid">
-                <!-- Header - Removed Initialize System and Refresh buttons -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Dashboard</h2>
-                    <div>
-                        <button class="btn btn-primary" onclick="app.loadPage('client-form')">
-                            <i class="bi bi-person-plus me-1"></i> Add Client
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Stats Row -->
-                <div class="row mb-4">
-                    ${this.renderStatsCards()}
-                </div>
-                
-                <!-- Quick Actions -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">Quick Actions</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <button class="btn btn-primary w-100" onclick="app.loadPage('client-form')">
-                                            <i class="bi bi-person-plus me-2"></i>Add Client
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <button class="btn btn-success w-100" onclick="app.loadPage('invoice-form')">
-                                            <i class="bi bi-plus-circle me-2"></i>Create Invoice
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <button class="btn btn-info w-100" onclick="app.loadPage('invoices')">
-                                            <i class="bi bi-receipt me-2"></i>View Invoices
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 col-6 mb-2">
-                                        <button class="btn btn-warning w-100" onclick="app.exportData()">
-                                            <i class="bi bi-download me-2"></i>Export Data
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Recent Data -->
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Recent Clients</h5>
-                                <a href="#" class="btn btn-sm btn-outline-primary" onclick="app.loadPage('clients')">
-                                    View All
-                                </a>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderRecentClients()}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Recent Invoices</h5>
-                                <a href="#" class="btn btn-sm btn-outline-primary" onclick="app.loadPage('invoices')">
-                                    View All
-                                </a>
-                            </div>
-                            <div class="card-body">
-                                ${this.renderRecentInvoices()}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
     }
 
     renderStatsCards() {
