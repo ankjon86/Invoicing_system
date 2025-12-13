@@ -171,26 +171,56 @@ class ClientsPage {
         }
     }
 
-    async viewClient(clientId) {
-        try {
-            const response = await apiService.getClient(clientId);
-            if (response.success) {
-                const client = response.data;
-                // Show client details in modal
-                this.showClientModal(client);
-            }
-        } catch (error) {
-            Utils.showNotification('Error loading client details', 'danger');
+    viewClient(clientId) {
+        const client = this.getClientById(clientId);
+        if (!client) {
+            Utils.showNotification('Client not found', 'warning');
+            return;
         }
+        // Simple details modal
+        const modalHtml = `
+          <div class="modal fade" id="clientViewModal" tabindex="-1">
+            <div class="modal-dialog modal-md">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">${client.company_name}</h5>
+                  <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <p><strong>Contact:</strong> ${client.contact_person || ''}</p>
+                  <p><strong>Email:</strong> ${client.email || ''}</p>
+                  <p><strong>Phone:</strong> ${client.phone || ''}</p>
+                  <p><strong>Address:</strong><br/>${client.address || ''}</p>
+                </div>
+                <div class="modal-footer">
+                  <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button class="btn btn-primary" onclick="clientsPage.editClient('${client.client_id}')">Edit</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        const container = document.createElement('div');
+        container.innerHTML = modalHtml;
+        document.body.appendChild(container);
+        const modal = new bootstrap.Modal(document.getElementById('clientViewModal'));
+        modal.show();
+        document.getElementById('clientViewModal').addEventListener('hidden.bs.modal', () => container.remove());
     }
 
-    async editClient(clientId) {
-        // For now, just show a notification
-        // In a real app, you would load the edit form
-        Utils.showNotification('Edit feature coming soon!', 'info');
-        
-        // Example of how you might implement it:
-        // app.loadPage(`client-edit?id=${clientId}`);
+        async editClient(clientId) {
+        const client = this.getClientById(clientId);
+        if (!client) {
+            // call backend in case page's state is stale
+            const res = await apiService.getClient({ client_id: clientId });
+            if (res && res.success) {
+                this.openClientForm(res.data);
+                return;
+            }
+            Utils.showNotification('Client not found', 'warning');
+            return;
+        }
+        this.openClientForm(client);
     }
 
     async deleteClient(clientId) {
