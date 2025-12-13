@@ -126,26 +126,18 @@ class InvoicesPage {
     }
 
     async editInvoice(invoiceId) {
-        // For now, just show a notification
-        // In a real app, you would load the edit form
         Utils.showNotification('Edit invoice feature coming soon!', 'info');
-        
-        // Example of how you might implement it:
-        // app.loadPage(`invoice-edit?id=${invoiceId}`);
     }
 
     async markAsPaid(invoiceId) {
         if (confirm('Mark this invoice as PAID? This action cannot be undone.')) {
             try {
                 Utils.showLoading(true);
-                // We need to update the invoice status
-                // First get the invoice to make sure it exists
                 const invoiceResponse = await apiService.getInvoice(invoiceId);
                 if (!invoiceResponse.success) {
                     throw new Error('Invoice not found');
                 }
                 
-                // Update the invoice status
                 const updateResponse = await apiService.updateInvoiceStatus({
                     invoice_id: invoiceId,
                     status: 'PAID'
@@ -153,7 +145,6 @@ class InvoicesPage {
                 
                 if (updateResponse.success) {
                     Utils.showNotification('Invoice marked as PAID successfully!', 'success');
-                    // Refresh the invoices list
                     this.app.loadPage('invoices');
                 } else {
                     throw new Error(updateResponse.error || 'Failed to update invoice status');
@@ -180,7 +171,6 @@ class InvoicesPage {
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- Status Alert -->
                             <div class="alert ${invoice.status === 'PAID' ? 'alert-success' : isOverdue ? 'alert-danger' : 'alert-warning'}">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
@@ -214,7 +204,6 @@ class InvoicesPage {
                                 </div>
                             </div>
                             
-                            <!-- Financial Summary -->
                             <div class="row mb-4">
                                 <div class="col-md-8 offset-md-2">
                                     <div class="card ${invoice.status === 'PAID' ? 'border-success' : isOverdue ? 'border-danger' : 'border-warning'}">
@@ -239,7 +228,6 @@ class InvoicesPage {
                                 </div>
                             </div>
                             
-                            <!-- Invoice Items -->
                             ${invoice.items && invoice.items.length > 0 ? `
                                 <h6>Invoice Items</h6>
                                 <div class="table-responsive">
@@ -296,16 +284,13 @@ class InvoicesPage {
             </div>
         `;
         
-        // Add modal to DOM
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
         
-        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
         modal.show();
         
-        // Remove modal from DOM after it's hidden
         document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
             modalContainer.remove();
         });
@@ -324,7 +309,6 @@ class InvoicesPage {
     }
 
     initialize() {
-        // Store reference to this instance for event handlers
         window.invoicesPage = this;
         console.log('Invoices page initialized');
     }
