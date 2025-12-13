@@ -171,6 +171,11 @@ class ClientsPage {
         }
     }
 
+    getClientById(id) {
+        return this.clients.find(c => c.client_id === id);
+    }
+
+    
     viewClient(clientId) {
         const client = this.getClientById(clientId);
         if (!client) {
