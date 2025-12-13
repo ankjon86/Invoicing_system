@@ -4,184 +4,101 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Receipt {{RECEIPT_NUMBER}}</title>
-
-  <!-- Bootstrap -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-
   <style>
-    :root{
-      --brand:#0d6efd;
-      --muted:#6c757d;
-      --bg:#f4f7fb;
-      --card:#ffffff;
-      --border:#e9eef6;
-    }
-
-    html,body{
-      margin:0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background:var(--bg);
-      color:#222;
-    }
-
-    .receipt-wrap{
-      max-width:760px;
-      margin:28px auto;
-      padding:20px;
-    }
-
-    .receipt-card{
-      background:var(--card);
-      border-radius:10px;
-      border:1px solid var(--border);
-      padding:22px;
-      box-shadow: 0 10px 30px rgba(10,20,40,0.04);
-    }
-
-    .header{
-      display:flex;
-      justify-content:space-between;
-      gap:12px;
-      align-items:flex-start;
-      margin-bottom:14px;
-    }
-    .logo{ display:flex; gap:12px; align-items:center; }
-    .logo img{ max-height:56px; border-radius:6px; }
-    .meta{ text-align:right; min-width:180px; }
-    .meta .title{ color:var(--brand); font-weight:700; font-size:1rem; }
-    .meta .muted{ color:var(--muted); font-size:0.9rem; }
-
-    .from-to{
-      display:flex;
-      gap:16px;
-      margin-bottom:12px;
-      flex-wrap:wrap;
-    }
-    .card-block{
-      flex:1 1 300px;
-      background:linear-gradient(180deg,#fff,#fbfdff);
-      border-radius:8px;
-      padding:12px;
-      border:1px solid var(--border);
-    }
-    .card-block h6{ margin:0 0 6px 0; }
-    .card-block p{ margin:0; color:var(--muted); font-size:0.92rem; }
-
-    .details{
-      margin:14px 0;
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .amount-box{
-      background: linear-gradient(180deg,#ffffff,#f8fbff);
-      padding:18px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      min-width:200px;
-      text-align:right;
-    }
-    .amount-box .amount{ font-size:1.6rem; font-weight:700; color:#111; }
-    .amount-box .method{ color:var(--muted); font-size:0.95rem; }
-
-    .desc{
-      padding:12px;
-      border-radius:8px;
-      background:#fff;
-      border:1px solid var(--border);
-      color:var(--muted);
-    }
-
-    .footer{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:18px;
-      flex-wrap:wrap;
-      gap:12px;
-    }
-
-    .no-print{ margin-top:16px; text-align:center; }
-    .no-print .btn{ min-width:140px; }
-
+    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: #222; }
+    .receipt-container { max-width: 800px; margin: 20px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+    .company-logo { max-height: 60px; }
+    .hr-dashed { border-top: 1px dashed #e6e6e6; }
+    .receipt-header { margin-bottom: 18px; }
+    .receipt-meta { font-size: 0.95rem; color: #555; }
+    .table-amount { font-size: 1.25rem; font-weight: 600; }
+    .small-muted { font-size: 0.9rem; color: #666; }
     @media print {
-      .no-print{ display:none !important; }
-      .receipt-wrap{ margin:0; padding:0; }
-      .receipt-card{ box-shadow:none; border:none; }
-    }
-
-    @media (max-width:720px){
-      .meta{ text-align:left; }
-      .from-to{ flex-direction:column; }
-      .amount-box{ width:100%; text-align:left; }
+      body { background: white; }
+      .no-print { display: none !important; }
+      .receipt-container { box-shadow: none; margin: 0; border-radius: 0; }
     }
   </style>
 </head>
 <body>
-  <div class="receipt-wrap">
-    <div class="receipt-card">
-      <div class="header">
-        <div class="logo">
-          <img src="{{COMPANY_LOGO}}" alt="logo" onerror="this.style.display='none'"/>
-          <div>
-            <div style="font-weight:700">{{COMPANY_NAME}}</div>
-            <div style="color:var(--muted)">{{COMPANY_TAGLINE}}</div>
-          </div>
-        </div>
+  <div class="receipt-container" id="receiptRoot">
+    <div class="d-flex justify-content-between align-items-start receipt-header">
+      <div>
+        <img src="{{COMPANY_LOGO}}" alt="logo" class="company-logo mb-1" onerror="this.style.display='none'"/>
+        <div><strong>{{COMPANY_NAME}}</strong></div>
+        <div class="small-muted">{{COMPANY_ADDRESS}}</div>
+      </div>
+      <div class="text-end">
+        <h5 class="mb-1">Receipt</h5>
+        <div class="receipt-meta">Receipt #: <strong>{{RECEIPT_NUMBER}}</strong></div>
+        <div class="receipt-meta">Date: <strong>{{DATE}}</strong></div>
+      </div>
+    </div>
 
-        <div class="meta">
-          <div class="title">Receipt</div>
-          <div class="muted">Receipt #: <strong>{{RECEIPT_NUMBER}}</strong></div>
-          <div class="muted">Date: <strong>{{DATE}}</strong></div>
+    <div class="row mb-3">
+      <div class="col-7">
+        <div class="small-muted">Received From</div>
+        <div><strong>{{CLIENT_NAME}}</strong></div>
+        <div class="small-muted">{{CLIENT_EMAIL}}</div>
+        <div class="small-muted">{{CLIENT_ADDRESS}}</div>
+      </div>
+      <div class="col-5">
+        <div class="small-muted">Payment Method</div>
+        <div><strong>{{PAYMENT_METHOD}}</strong></div>
+
+        {{#IF_INVOICE}}
+        <div class="mt-3 small-muted">Applied To Invoice</div>
+        <div><a href="#" onclick="window.open('/#invoice/{{INVOICE_NUMBER}}', '_blank')">{{INVOICE_NUMBER}}</a></div>
+        {{/IF_INVOICE}}
+      </div>
+    </div>
+
+    <div class="hr-dashed mb-3"></div>
+
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small-muted">Description</div>
+        <div class="small-muted">Amount</div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center py-3 border rounded mt-2">
+        <div>
+          <div><strong>{{DESCRIPTION}}</strong></div>
+          <div class="small-muted">{{NOTES}}</div>
+        </div>
+        <div class="text-end">
+          <div class="table-amount">{{AMOUNT}}</div>
         </div>
       </div>
 
-      <div class="from-to">
-        <div class="card-block">
-          <h6>Received From</h6>
-          <p><strong>{{CLIENT_NAME}}</strong></p>
-          <p class="muted">{{CLIENT_EMAIL}}</p>
-          <p class="muted">{{CLIENT_ADDRESS}}</p>
-        </div>
+      <div class="mt-3 small-muted">Amount (in words):</div>
+      <div class="fw-semibold">{{AMOUNT_WORDS}}</div>
+    </div>
 
-        <div class="card-block">
-          <h6>Payment Details</h6>
-          <p class="muted">Method: <strong>{{PAYMENT_METHOD}}</strong></p>
-          <p class="muted">Applied To: <strong>{{INVOICE_NUMBER}}</strong></p>
-        </div>
-      </div>
+    <div class="hr-dashed mb-3"></div>
 
-      <div class="details">
-        <div class="desc">
-          <div style="font-weight:700; margin-bottom:6px;">{{DESCRIPTION}}</div>
-          <div class="muted">{{NOTES}}</div>
-          <div style="margin-top:10px; color:var(--muted); font-size:0.9rem;">Amount (in words): <span style="font-weight:600">{{AMOUNT_WORDS}}</span></div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="small-muted">Created by: <strong>{{CREATED_BY}}</strong></div>
+      <div class="small-muted">Created on: <strong>{{CREATED_DATE}}</strong></div>
+    </div>
 
-        <div class="amount-box">
-          <div class="method muted">Amount</div>
-          <div class="amount">{{AMOUNT}}</div>
-        </div>
-      </div>
-
-      <div class="footer">
-        <div class="muted">Created by: <strong>{{CREATED_BY}}</strong></div>
-        <div class="muted">Created on: <strong>{{CREATED_DATE}}</strong></div>
-      </div>
-
-      <div class="no-print text-center">
-        <button class="btn btn-primary me-2" id="printReceiptBtn">Print</button>
-        <button class="btn btn-outline-secondary" id="downloadPdfBtn">Download PDF</button>
-      </div>
+    <div class="mt-4 text-center small-muted no-print">
+      <button class="btn btn-primary me-2" id="printReceiptBtn">Print</button>
+      <button class="btn btn-outline-secondary" id="downloadPdfBtn">Download PDF</button>
     </div>
   </div>
 
   <script>
-    document.getElementById('printReceiptBtn')?.addEventListener('click', function(){ window.print(); });
-    document.getElementById('downloadPdfBtn')?.addEventListener('click', function(){ window.print(); });
+    // Simple client-side print handler used when the modal loads this template as a standalone page (fallback).
+    document.getElementById('printReceiptBtn')?.addEventListener('click', function(){
+      window.print();
+    });
+
+    // Download PDF button uses print in a new window (browser handles PDF via print-to-PDF)
+    document.getElementById('downloadPdfBtn')?.addEventListener('click', function(){
+      window.print();
+    });
   </script>
 </body>
 </html>
