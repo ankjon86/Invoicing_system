@@ -1,5 +1,3 @@
-[file name]: invoices.js
-[file content begin]
 // Invoices Page Module
 class InvoicesPage {
     constructor(app) {
