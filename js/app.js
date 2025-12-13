@@ -31,6 +31,10 @@ class InvoiceApp {
         
         // Start auto-refresh
         this.startAutoRefresh();
+
+        // Load initial page from hash or default
+        const hash = window.location.hash.replace('#', '') || 'dashboard';
+        this.loadPage(hash);
     }
 
     setupEventListeners() {
@@ -55,10 +59,15 @@ class InvoiceApp {
                 }
             }
         });
+
+        window.addEventListener('hashchange', () => {
+            const page = window.location.hash.replace('#','') || 'dashboard';
+            this.loadPage(page);
+        });
     }
 
     initPageModules() {
-        // Initialize page modules if they exist
+        // Page classes are loaded via scripts in index.html
         if (window.DashboardPage) {
             this.dashboardPage = new DashboardPage(this);
         }
@@ -74,6 +83,9 @@ class InvoiceApp {
         if (window.BillingPage) {
             this.billingPage = new BillingPage(this);
         }
+        if (window.ReceiptsPage) {
+            this.receiptsPage = new ReceiptsPage(this);
+        }
     }
 
     async loadInitialData() {
@@ -86,11 +98,11 @@ class InvoiceApp {
                 apiService.getInvoices()
             ]);
 
-            if (clientsResponse.success) {
+            if (clientsResponse && clientsResponse.success) {
                 this.state.clients = clientsResponse.data || [];
             }
 
-            if (invoicesResponse.success) {
+            if (invoicesResponse && invoicesResponse.success) {
                 this.state.invoices = invoicesResponse.data || [];
             }
 
@@ -125,6 +137,9 @@ class InvoiceApp {
                 case 'billing':
                     await this.refreshBillingData();
                     break;
+                case 'receipts':
+                    await this.refreshReceiptsData();
+                    break;
             }
             
             // Show refresh indicator
@@ -142,22 +157,22 @@ class InvoiceApp {
             apiService.getInvoices({ limit: 5, sort: 'newest' })
         ]);
 
-        if (statsResponse.success && this.dashboardPage) {
+        if (statsResponse && statsResponse.success && this.dashboardPage) {
             this.dashboardPage.stats = statsResponse.data || {};
         }
         
-        if (recentClientsResponse.success && this.dashboardPage) {
+        if (recentClientsResponse && recentClientsResponse.success && this.dashboardPage) {
             this.dashboardPage.recentClients = recentClientsResponse.data || [];
         }
         
-        if (recentInvoicesResponse.success && this.dashboardPage) {
+        if (recentInvoicesResponse && recentInvoicesResponse.success && this.dashboardPage) {
             this.dashboardPage.recentInvoices = recentInvoicesResponse.data || [];
         }
     }
 
     async refreshClientsData() {
         const response = await apiService.getClients();
-        if (response.success && this.clientsPage) {
+        if (response && response.success && this.clientsPage) {
             this.clientsPage.clients = response.data || [];
             this.clientsPage.filteredClients = [...this.clientsPage.clients];
             this.clientsPage.updateTable();
@@ -166,13 +181,13 @@ class InvoiceApp {
 
     async refreshInvoicesData() {
         const response = await apiService.getInvoices();
-        if (response.success && this.invoicesPage) {
+        if (response && response.success && this.invoicesPage) {
             this.invoicesPage.invoices = response.data || [];
             // Re-render if on invoices page
             if (this.currentPage === 'invoices') {
                 const content = document.getElementById('content');
                 if (content) {
-                    content.innerHTML = this.invoicesPage.getTemplate();
+                    content.innerHTML = await this.invoicesPage.render();
                     this.invoicesPage.initialize();
                 }
             }
@@ -187,14 +202,28 @@ class InvoiceApp {
         ]);
 
         if (this.billingPage) {
-            if (contractsResponse.success) {
+            if (contractsResponse && contractsResponse.success) {
                 this.billingPage.contracts = contractsResponse.data || [];
             }
-            if (schedulesResponse.success) {
+            if (schedulesResponse && schedulesResponse.success) {
                 this.billingPage.schedules = schedulesResponse.data || [];
             }
-            if (upcomingResponse.success) {
+            if (upcomingResponse && upcomingResponse.success) {
                 this.billingPage.upcomingInvoices = upcomingResponse.data || [];
+            }
+        }
+    }
+
+    async refreshReceiptsData() {
+        const response = await apiService.getReceipts();
+        if (response && response.success && this.receiptsPage) {
+            this.receiptsPage.receipts = response.data || [];
+            if (this.currentPage === 'receipts') {
+                const content = document.getElementById('content');
+                if (content) {
+                    content.innerHTML = await this.receiptsPage.render();
+                    this.receiptsPage.initialize();
+                }
             }
         }
     }
@@ -230,8 +259,10 @@ class InvoiceApp {
                 html = await this.invoicesPage.render();
             } else if (page === 'billing' && this.billingPage) {
                 html = await this.billingPage.render();
-            } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage) {
+            } else if ((page === 'client-form' || page === 'invoice-form' || page === 'receipt-form') && this.formsPage) {
                 html = await this.formsPage.render(page);
+            } else if (page === 'receipts' && this.receiptsPage) {
+                html = await this.receiptsPage.render();
             } else {
                 html = this.loadFallbackPage(page);
             }
@@ -330,8 +361,10 @@ class InvoiceApp {
                 this.invoicesPage.initialize();
             } else if (page === 'billing' && this.billingPage && this.billingPage.initialize) {
                 this.billingPage.initialize();
-            } else if ((page === 'client-form' || page === 'invoice-form') && this.formsPage && this.formsPage.initialize) {
+            } else if ((page === 'client-form' || page === 'invoice-form' || page === 'receipt-form') && this.formsPage && this.formsPage.initialize) {
                 this.formsPage.initialize();
+            } else if (page === 'receipts' && this.receiptsPage && this.receiptsPage.initialize) {
+                this.receiptsPage.initialize();
             }
         }, 100);
     }
@@ -348,7 +381,7 @@ class InvoiceApp {
         `;
     }
 
-    // System functions - Remove initializeSystem, keep exportData
+    // System functions - keep exportData
     async exportData() {
         try {
             Utils.showLoading(true);
