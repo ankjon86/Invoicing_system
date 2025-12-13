@@ -7,94 +7,94 @@ class InvoicesPage {
 
     async render() {
         try {
-            const response = await apiService.getInvoices();
+            const [response, template] = await Promise.all([
+                apiService.getInvoices(),
+                Utils.loadTemplate('templates/invoices.html')
+            ]);
+
             this.invoices = response.success ? response.data : [];
-            return this.getTemplate();
+
+            const contentHtml = this.invoices.length > 0 ? this.buildInvoicesTable() : this.buildEmptyState();
+
+            return Utils.renderTemplate(template, {
+                'INVOICES_CONTENT': contentHtml
+            });
         } catch (error) {
             console.error('Error loading invoices:', error);
             return this.getErrorTemplate(error);
         }
     }
 
-    getTemplate() {
+    buildInvoicesTable() {
         return `
-            <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Invoices</h2>
-                    <div>
-                        <button class="btn btn-primary" onclick="app.loadPage('invoice-form')">
-                            <i class="bi bi-plus-circle me-1"></i> Create Invoice
-                        </button>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Date</th>
+                                    <th>Due Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.invoices.map(invoice => `
+                                    <tr>
+                                        <td><strong>${invoice.invoice_number || 'N/A'}</strong></td>
+                                        <td>${this.getClientName(invoice.client_id)}</td>
+                                        <td>${Utils.formatDate(invoice.date)}</td>
+                                        <td>${Utils.formatDate(invoice.due_date)}</td>
+                                        <td>${Utils.formatCurrency(invoice.total)}</td>
+                                        <td>
+                                            <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
+                                                ${invoice.status || 'UNPAID'}
+                                            </span>
+                                            ${this.isOverdue(invoice) ? '<br><small class="text-danger">Overdue</small>' : ''}
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" 
+                                                        onclick="invoicesPage.viewInvoice('${invoice.invoice_id}')"
+                                                        title="View Invoice">
+                                                    <i class="bi bi-eye"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary" 
+                                                        onclick="invoicesPage.editInvoice('${invoice.invoice_id}')"
+                                                        title="Edit Invoice">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-success" 
+                                                        onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')"
+                                                        title="Mark as Paid"
+                                                        ${invoice.status === 'PAID' ? 'disabled' : ''}>
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                
-                <div class="card">
-                    <div class="card-body">
-                        ${this.invoices.length > 0 ? `
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Invoice #</th>
-                                            <th>Client</th>
-                                            <th>Date</th>
-                                            <th>Due Date</th>
-                                            <th>Amount</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${this.invoices.map(invoice => `
-                                            <tr>
-                                                <td><strong>${invoice.invoice_number || 'N/A'}</strong></td>
-                                                <td>${this.getClientName(invoice.client_id)}</td>
-                                                <td>${Utils.formatDate(invoice.date)}</td>
-                                                <td>${Utils.formatDate(invoice.due_date)}</td>
-                                                <td>${Utils.formatCurrency(invoice.total)}</td>
-                                                <td>
-                                                    <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
-                                                        ${invoice.status || 'UNPAID'}
-                                                    </span>
-                                                    ${this.isOverdue(invoice) ? '<br><small class="text-danger">Overdue</small>' : ''}
-                                                </td>
-                                                <td>
-                                                    <div class="btn-group btn-group-sm">
-                                                        <button class="btn btn-outline-primary" 
-                                                                onclick="invoicesPage.viewInvoice('${invoice.invoice_id}')"
-                                                                title="View Invoice">
-                                                            <i class="bi bi-eye"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-secondary" 
-                                                                onclick="invoicesPage.editInvoice('${invoice.invoice_id}')"
-                                                                title="Edit Invoice">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button class="btn btn-outline-success" 
-                                                                onclick="invoicesPage.markAsPaid('${invoice.invoice_id}')"
-                                                                title="Mark as Paid"
-                                                                ${invoice.status === 'PAID' ? 'disabled' : ''}>
-                                                            <i class="bi bi-check-circle"></i>
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ` : `
-                            <div class="text-center py-5">
-                                <i class="bi bi-receipt display-1 text-muted"></i>
-                                <h4 class="mt-3">No Invoices</h4>
-                                <p class="text-muted mb-4">Create your first invoice to get started</p>
-                                <button class="btn btn-primary" onclick="app.loadPage('invoice-form')">
-                                    <i class="bi bi-plus-circle me-2"></i>Create First Invoice
-                                </button>
-                            </div>
-                        `}
-                    </div>
-                </div>
+            </div>
+        `;
+    }
+
+    buildEmptyState() {
+        return `
+            <div class="text-center py-5">
+                <i class="bi bi-receipt display-1 text-muted"></i>
+                <h4 class="mt-3">No Invoices</h4>
+                <p class="text-muted mb-4">Create your first invoice to get started</p>
+                <button class="btn btn-primary" onclick="app.loadPage('invoice-form')">
+                    <i class="bi bi-plus-circle me-2"></i>Create First Invoice
+                </button>
             </div>
         `;
     }
@@ -125,7 +125,7 @@ class InvoicesPage {
         }
     }
 
-    async editInvoice(invoiceId) {
+    editInvoice(invoiceId) {
         Utils.showNotification('Edit invoice feature coming soon!', 'info');
     }
 
