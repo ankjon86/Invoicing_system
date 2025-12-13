@@ -1,4 +1,4 @@
-// Receipts Page Module - updated to use a formal receipt template when viewing a receipt
+// Receipts Page Module
 class ReceiptsPage {
     constructor(app) {
         this.app = app;
@@ -89,7 +89,7 @@ class ReceiptsPage {
         return client ? client.company_name : 'Unknown Client';
     }
 
-    // Convert number to words (simple English, supports up to millions)
+    // Convert number to words (simple English)
     numberToWords(amount) {
         if (isNaN(amount)) return '';
         const ones = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
@@ -111,7 +111,7 @@ class ReceiptsPage {
             return str;
         }
 
-        amount = Number(Math.round(amount * 100) / 100); // 2 decimals
+        amount = Number(Math.round(amount * 100) / 100);
         const whole = Math.floor(amount);
         const cents = Math.round((amount - whole) * 100);
 
@@ -153,7 +153,6 @@ class ReceiptsPage {
                 template = await Utils.loadTemplate('templates/receipts/receipt-template.html');
             } catch (tplErr) {
                 console.warn('Receipt template not found, falling back to modal', tplErr);
-                // fallback to simple modal
                 const modalHtml = `
                     <div class="modal fade" id="receiptModal" tabindex="-1">
                         <div class="modal-dialog modal-md">
@@ -188,7 +187,7 @@ class ReceiptsPage {
 
             // Prepare data for template placeholders
             const client = this.app.state.clients.find(c => c.client_id === r.client_id) || {};
-            const createdBy = r.created_by || (Session && Session.getActiveUser ? (Session.getActiveUser().getEmail ? Session.getActiveUser().getEmail() : '') : '');
+            const createdBy = r.created_by || '';
             const createdDate = r.created_date || new Date().toISOString();
 
             const filled = Utils.renderTemplate(template, {
@@ -201,7 +200,7 @@ class ReceiptsPage {
                 'CLIENT_EMAIL': client.email || '',
                 'CLIENT_ADDRESS': client.address || '',
                 'PAYMENT_METHOD': r.payment_method || '',
-                'DESCRIPTION': `Payment for ${r.receipt_number || ''}`,
+                'DESCRIPTION': `Payment received`,
                 'NOTES': r.notes || '',
                 'AMOUNT': Utils.formatCurrency(r.amount || 0),
                 'AMOUNT_WORDS': this.numberToWords(parseFloat(r.amount || 0)),
@@ -210,7 +209,7 @@ class ReceiptsPage {
                 'INVOICE_NUMBER': r.invoice_number || ''
             });
 
-            // Show in a modal but also support printing/download
+            // Show in a modal and allow printing
             const modalContainer = document.createElement('div');
             modalContainer.innerHTML = `
                 <div class="modal fade" id="receiptTemplateModal" tabindex="-1">
@@ -233,9 +232,7 @@ class ReceiptsPage {
             const modal = new bootstrap.Modal(modalEl);
             modal.show();
 
-            // Print button: open a new window with the receipt HTML and invoke print.
             document.getElementById('printFromModalBtn').addEventListener('click', function () {
-                // Extract the receipt root content
                 const receiptHtml = modalEl.querySelector('.receipt-container').outerHTML;
                 const printWindow = window.open('', '_blank', 'width=800,height=600');
                 printWindow.document.write(`
@@ -243,9 +240,7 @@ class ReceiptsPage {
                       <head>
                         <title>Receipt ${r.receipt_number || r.receipt_id}</title>
                         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-                        <style>
-                          body{font-family: "Segoe UI", Tahoma, Verdana, sans-serif; padding:20px; color:#222;}
-                        </style>
+                        <style>body{font-family: "Segoe UI", Tahoma, Verdana, sans-serif; padding:20px; color:#222;}</style>
                       </head>
                       <body>
                         ${receiptHtml}
