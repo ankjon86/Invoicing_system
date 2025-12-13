@@ -9,115 +9,72 @@ class BillingPage {
 
     async render() {
         try {
-            const [contractsResponse, schedulesResponse, upcomingResponse] = await Promise.all([
+            const [contractsResponse, schedulesResponse, upcomingResponse, template] = await Promise.all([
                 apiService.getContracts(),
                 apiService.getBillingSchedules(),
-                apiService.getUpcomingInvoices({ days: 30 })
+                apiService.getUpcomingInvoices({ days: 30 }),
+                Utils.loadTemplate('templates/billing.html')
             ]);
 
             this.contracts = contractsResponse.success ? contractsResponse.data : [];
             this.schedules = schedulesResponse.success ? schedulesResponse.data : [];
             this.upcomingInvoices = upcomingResponse.success ? upcomingResponse.data : [];
 
-            return this.getTemplate();
-            
+            const statsHtml = this.renderTopStats();
+            const upcomingHtml = this.renderUpcomingInvoices();
+            const contractsHtml = this.renderContracts();
+            const schedulesHtml = this.renderBillingSchedules();
+
+            return Utils.renderTemplate(template, {
+                'STATS': statsHtml,
+                'UPCOMING_INVOICES': upcomingHtml,
+                'CONTRACTS': contractsHtml,
+                'SCHEDULES': schedulesHtml
+            });
+
         } catch (error) {
             console.error('Error loading billing:', error);
             return this.getErrorTemplate(error);
         }
     }
 
-    getTemplate() {
+    renderTopStats() {
         return `
-            <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2>Billing & Contracts</h2>
-                    <div>
-                        <button class="btn btn-primary me-2" onclick="billingPage.addContract()">
-                            <i class="bi bi-file-earmark-plus me-1"></i> Add Contract
-                        </button>
-                        <button class="btn btn-success" onclick="billingPage.addBillingSchedule()">
-                            <i class="bi bi-calendar-plus me-1"></i> Add Billing Schedule
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Stats -->
-                <div class="row mb-4">
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card stats-card border-primary">
-                            <div class="card-body text-center">
-                                <i class="bi bi-file-text text-primary mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="text-muted">Active Contracts</h6>
-                                <h3 class="mt-2">${this.contracts.filter(c => c.status === 'ACTIVE').length}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card stats-card border-success">
-                            <div class="card-body text-center">
-                                <i class="bi bi-calendar-check text-success mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="text-muted">Active Schedules</h6>
-                                <h3 class="mt-2">${this.schedules.filter(s => s.status === 'ACTIVE').length}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card stats-card border-warning">
-                            <div class="card-body text-center">
-                                <i class="bi bi-clock text-warning mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="text-muted">Upcoming Invoices</h6>
-                                <h3 class="mt-2">${this.upcomingInvoices.length}</h3>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card stats-card border-info">
-                            <div class="card-body text-center">
-                                <i class="bi bi-arrow-repeat text-info mb-2" style="font-size: 2rem;"></i>
-                                <h6 class="text-muted">Recurring Revenue</h6>
-                                <h3 class="mt-2">${this.calculateRecurringRevenue()}</h3>
-                            </div>
+            <div class="row mb-4">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card stats-card border-primary">
+                        <div class="card-body text-center">
+                            <i class="bi bi-file-text text-primary mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-muted">Active Contracts</h6>
+                            <h3 class="mt-2">${this.contracts.filter(c => c.status === 'ACTIVE').length}</h3>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Tabs -->
-                <ul class="nav nav-tabs mb-4" id="billingTabs">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#upcoming">
-                            Upcoming Invoices (30 days)
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#contracts">
-                            Contracts
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#schedules">
-                            Billing Schedules
-                        </button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content">
-                    <!-- Upcoming Invoices Tab -->
-                    <div class="tab-pane fade show active" id="upcoming">
-                        ${this.renderUpcomingInvoices()}
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card stats-card border-success">
+                        <div class="card-body text-center">
+                            <i class="bi bi-calendar-check text-success mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-muted">Active Schedules</h6>
+                            <h3 class="mt-2">${this.schedules.filter(s => s.status === 'ACTIVE').length}</h3>
+                        </div>
                     </div>
-                    
-                    <!-- Contracts Tab -->
-                    <div class="tab-pane fade" id="contracts">
-                        ${this.renderContracts()}
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card stats-card border-warning">
+                        <div class="card-body text-center">
+                            <i class="bi bi-clock text-warning mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-muted">Upcoming Invoices</h6>
+                            <h3 class="mt-2">${this.upcomingInvoices.length}</h3>
+                        </div>
                     </div>
-                    
-                    <!-- Schedules Tab -->
-                    <div class="tab-pane fade" id="schedules">
-                        ${this.renderBillingSchedules()}
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="card stats-card border-info">
+                        <div class="card-body text-center">
+                            <i class="bi bi-arrow-repeat text-info mb-2" style="font-size: 2rem;"></i>
+                            <h6 class="text-muted">Recurring Revenue</h6>
+                            <h3 class="mt-2">${this.calculateRecurringRevenue()}</h3>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,7 +86,7 @@ class BillingPage {
         const monthlyRevenue = activeSchedules.reduce((total, schedule) => {
             let multiplier = 1;
             
-            switch(schedule.billing_frequency) {
+            switch((schedule.billing_frequency || '').toUpperCase()) {
                 case 'DAILY': multiplier = 30; break;
                 case 'WEEKLY': multiplier = 4.33; break;
                 case 'BIWEEKLY': multiplier = 2.17; break;
@@ -139,7 +96,7 @@ class BillingPage {
                 default: multiplier = 1;
             }
             
-            return total + (schedule.billing_amount * multiplier);
+            return total + ((parseFloat(schedule.billing_amount) || 0) * multiplier);
         }, 0);
         
         return Utils.formatCurrency(monthlyRevenue);
@@ -326,8 +283,8 @@ class BillingPage {
                             <tbody>
                                 ${this.schedules.map(schedule => {
                                     const client = this.app.state.clients.find(c => c.client_id === schedule.client_id);
-                                    const nextDate = new Date(schedule.next_billing_date);
-                                    const daysUntil = this.getDaysUntil(schedule.next_billing_date);
+                                    const nextDate = new Date(schedule.next_billing_date || new Date());
+                                    const daysUntil = this.getDaysUntil(schedule.next_billing_date || new Date());
                                     
                                     return `
                                         <tr>
@@ -402,12 +359,15 @@ class BillingPage {
         return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    // Action Methods
+    // Action Methods (full implementations)
+
     async viewContract(contractId) {
         try {
             const response = await apiService.getContract(contractId);
             if (response.success) {
                 this.showContractModal(response.data);
+            } else {
+                Utils.showNotification('Contract not found', 'warning');
             }
         } catch (error) {
             Utils.showNotification('Error loading contract details', 'danger');
@@ -464,78 +424,64 @@ class BillingPage {
 
     async createInvoiceFromSchedule(scheduleId) {
         try {
-            if (confirm('Create invoice from this schedule now? This will generate an invoice for the current billing period.')) {
-                Utils.showLoading(true);
-                
-                // Get the schedule details
-                const schedulesResponse = await apiService.getBillingSchedules();
-                if (!schedulesResponse.success) {
-                    throw new Error('Failed to get schedule details');
-                }
-                
-                const schedule = schedulesResponse.data.find(s => s.schedule_id === scheduleId);
-                if (!schedule) {
-                    throw new Error('Schedule not found');
-                }
-                
-                // Get client details
-                const clientResponse = await apiService.getClient(schedule.client_id);
-                if (!clientResponse.success) {
-                    throw new Error('Failed to get client details');
-                }
-                
-                const client = clientResponse.data;
-                
-                // Prepare invoice data
-                const today = new Date();
-                const dueDate = new Date(today);
-                dueDate.setDate(today.getDate() + (client.payment_terms || 30));
-                
-                const invoiceData = {
-                    client_id: schedule.client_id,
-                    date: today.toISOString().split('T')[0],
-                    due_date: dueDate.toISOString().split('T')[0],
-                    currency: client.currency || 'GHS',
-                    notes: `Auto-generated from billing schedule ${schedule.schedule_id}`,
-                    items: []
-                };
-                
-                // Add schedule items to invoice
-                if (schedule.items && Array.isArray(schedule.items) && schedule.items.length > 0) {
-                    // Use schedule items directly
-                    invoiceData.items = schedule.items.map(item => ({
-                        description: item.description || `Service - ${schedule.billing_frequency}`,
-                        quantity: item.quantity || schedule.quantity || 1,
-                        unit_price: item.unit_price || schedule.billing_amount,
-                        tax_rate: item.tax_rate || schedule.tax_rate || 0
-                    }));
-                } else {
-                    // Create a single item from schedule
-                    invoiceData.items.push({
-                        description: schedule.bill_description || `Recurring service - ${schedule.billing_frequency}`,
-                        quantity: schedule.quantity || 1,
-                        unit_price: schedule.billing_amount,
-                        tax_rate: schedule.tax_rate || 0
-                    });
-                }
-                
-                // Create the invoice
-                const invoiceResponse = await apiService.createInvoice(invoiceData);
-                
-                if (invoiceResponse.success) {
-                    // Update schedule with new next billing date
-                    await this.updateNextBillingDate(schedule);
-                    
-                    Utils.showNotification(`Invoice ${invoiceResponse.data.invoiceNumber} created successfully!`, 'success');
-                    
-                    // Offer to view the invoice
-                    if (confirm('Invoice created successfully! Would you like to view it now?')) {
-                        this.viewGeneratedInvoice(invoiceResponse.data.invoiceId || invoiceResponse.data.invoice_id);
-                    }
-                } else {
-                    throw new Error(invoiceResponse.error || 'Failed to create invoice');
-                }
+            if (!confirm('Create invoice from this schedule now? This will generate an invoice for the current billing period.')) {
+                return;
             }
+            Utils.showLoading(true);
+
+            const schedulesResponse = await apiService.getBillingSchedules();
+            if (!schedulesResponse.success) throw new Error('Failed to get schedule details');
+
+            const schedule = schedulesResponse.data.find(s => s.schedule_id === scheduleId);
+            if (!schedule) throw new Error('Schedule not found');
+
+            const clientResponse = await apiService.getClient(schedule.client_id);
+            if (!clientResponse.success) throw new Error('Failed to get client details');
+
+            const client = clientResponse.data;
+
+            const today = new Date();
+            const dueDate = new Date(today);
+            dueDate.setDate(today.getDate() + (client.payment_terms || 30));
+
+            const invoiceData = {
+                client_id: schedule.client_id,
+                date: today.toISOString().split('T')[0],
+                due_date: dueDate.toISOString().split('T')[0],
+                currency: client.currency || 'GHS',
+                notes: `Auto-generated from billing schedule ${schedule.schedule_id}`,
+                items: []
+            };
+
+            if (schedule.items && Array.isArray(schedule.items) && schedule.items.length > 0) {
+                invoiceData.items = schedule.items.map(item => ({
+                    description: item.description || `Service - ${schedule.billing_frequency}`,
+                    quantity: item.quantity || schedule.quantity || 1,
+                    unit_price: item.unit_price || schedule.billing_amount,
+                    tax_rate: item.tax_rate || schedule.tax_rate || 0
+                }));
+            } else {
+                invoiceData.items.push({
+                    description: schedule.bill_description || `Recurring service - ${schedule.billing_frequency}`,
+                    quantity: schedule.quantity || 1,
+                    unit_price: schedule.billing_amount,
+                    tax_rate: schedule.tax_rate || 0
+                });
+            }
+
+            const invoiceResponse = await apiService.createInvoice(invoiceData);
+
+            if (invoiceResponse.success) {
+                await this.updateNextBillingDate(schedule);
+                Utils.showNotification(`Invoice ${invoiceResponse.data.invoiceNumber} created successfully!`, 'success');
+
+                if (confirm('Invoice created successfully! Would you like to view it now?')) {
+                    this.viewGeneratedInvoice(invoiceResponse.data.invoiceId || invoiceResponse.data.invoice_id);
+                }
+            } else {
+                throw new Error(invoiceResponse.error || 'Failed to create invoice');
+            }
+
         } catch (error) {
             console.error('Error creating invoice from schedule:', error);
             Utils.showNotification(`Error: ${error.message}`, 'danger');
@@ -546,15 +492,13 @@ class BillingPage {
 
     async updateNextBillingDate(schedule) {
         try {
-            // Calculate next billing date based on frequency
             const nextDate = this.calculateNextBillingDate(
                 schedule.billing_frequency,
                 schedule.billing_day,
                 schedule.billing_cycle,
                 schedule.next_billing_date || new Date()
             );
-            
-            // Update schedule in the system
+
             const updateData = {
                 schedule_id: schedule.schedule_id,
                 last_billed_date: new Date().toISOString().split('T')[0],
@@ -562,27 +506,26 @@ class BillingPage {
                 cycles_completed: (schedule.cycles_completed || 0) + 1,
                 last_modified: new Date().toISOString()
             };
-            
-            // If your API has an updateBillingSchedule function, call it here
-            // For now, we'll just log the update
-            console.log('Schedule would be updated with:', updateData);
-            
-            // You can implement this once updateBillingSchedule API is available:
-            // const updateResponse = await apiService.updateBillingSchedule(updateData);
-            // if (!updateResponse.success) {
-            //     console.warn('Failed to update schedule:', updateResponse.error);
-            // }
-            
+
+            // Attempt to update via API if available
+            try {
+                const updateResponse = await apiService.updateBillingSchedule(updateData);
+                if (!updateResponse.success) {
+                    console.warn('Failed to update schedule via API:', updateResponse.error);
+                }
+            } catch (err) {
+                console.warn('updateBillingSchedule API not available or failed:', err);
+            }
+
         } catch (error) {
             console.error('Error updating next billing date:', error);
-            // Don't fail the whole process if this update fails
         }
     }
 
     calculateNextBillingDate(frequency, billingDay = 1, billingCycle = 'END_OF_MONTH', fromDate = null) {
         const date = fromDate ? new Date(fromDate) : new Date();
         
-        switch(frequency.toUpperCase()) {
+        switch((frequency || '').toUpperCase()) {
             case 'DAILY':
                 date.setDate(date.getDate() + 1);
                 break;
@@ -603,7 +546,6 @@ class BillingPage {
                     date.setMonth(date.getMonth() + 1);
                     date.setDate(0); // Last day of next month
                 } else {
-                    // Specific day of month
                     const day = parseInt(billingDay) || 1;
                     date.setDate(Math.min(day, this.getDaysInMonth(date)));
                 }
@@ -737,16 +679,13 @@ class BillingPage {
             </div>
         `;
         
-        // Add modal to DOM
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
         
-        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('scheduleModal'));
         modal.show();
         
-        // Remove modal from DOM after it's hidden
         document.getElementById('scheduleModal').addEventListener('hidden.bs.modal', function () {
             modalContainer.remove();
         });
@@ -847,16 +786,13 @@ class BillingPage {
             </div>
         `;
         
-        // Add modal to DOM
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
         
-        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('invoiceModal'));
         modal.show();
         
-        // Remove modal from DOM after it's hidden
         document.getElementById('invoiceModal').addEventListener('hidden.bs.modal', function () {
             modalContainer.remove();
         });
@@ -944,16 +880,13 @@ class BillingPage {
             </div>
         `;
         
-        // Add modal to DOM
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
         
-        // Show modal
         const modal = new bootstrap.Modal(document.getElementById('contractModal'));
         modal.show();
         
-        // Remove modal from DOM after it's hidden
         document.getElementById('contractModal').addEventListener('hidden.bs.modal', function () {
             modalContainer.remove();
         });
@@ -992,7 +925,6 @@ class BillingPage {
     }
 
     initialize() {
-        // Store reference to this instance for event handlers
         window.billingPage = this;
         
         // Initialize tab functionality
