@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Receipt {{RECEIPT_NUMBER}}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: #222; }
+    .receipt-container { max-width: 800px; margin: 20px auto; background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.06); }
+    .company-logo { max-height: 60px; }
+    .hr-dashed { border-top: 1px dashed #e6e6e6; }
+    .receipt-header { margin-bottom: 18px; }
+    .receipt-meta { font-size: 0.95rem; color: #555; }
+    .table-amount { font-size: 1.25rem; font-weight: 600; }
+    .small-muted { font-size: 0.9rem; color: #666; }
+    @media print {
+      body { background: white; }
+      .no-print { display: none !important; }
+      .receipt-container { box-shadow: none; margin: 0; border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-container" id="receiptRoot">
+    <div class="d-flex justify-content-between align-items-start receipt-header">
+      <div>
+        <img src="{{COMPANY_LOGO}}" alt="logo" class="company-logo mb-1" onerror="this.style.display='none'"/>
+        <div><strong>{{COMPANY_NAME}}</strong></div>
+        <div class="small-muted">{{COMPANY_ADDRESS}}</div>
+      </div>
+      <div class="text-end">
+        <h5 class="mb-1">Receipt</h5>
+        <div class="receipt-meta">Receipt #: <strong>{{RECEIPT_NUMBER}}</strong></div>
+        <div class="receipt-meta">Date: <strong>{{DATE}}</strong></div>
+      </div>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-7">
+        <div class="small-muted">Received From</div>
+        <div><strong>{{CLIENT_NAME}}</strong></div>
+        <div class="small-muted">{{CLIENT_EMAIL}}</div>
+        <div class="small-muted">{{CLIENT_ADDRESS}}</div>
+      </div>
+      <div class="col-5">
+        <div class="small-muted">Payment Method</div>
+        <div><strong>{{PAYMENT_METHOD}}</strong></div>
+
+        {{#IF_INVOICE}}
+        <div class="mt-3 small-muted">Applied To Invoice</div>
+        <div><a href="#" onclick="window.open('/#invoice/{{INVOICE_NUMBER}}', '_blank')">{{INVOICE_NUMBER}}</a></div>
+        {{/IF_INVOICE}}
+      </div>
+    </div>
+
+    <div class="hr-dashed mb-3"></div>
+
+    <div class="mb-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="small-muted">Description</div>
+        <div class="small-muted">Amount</div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center py-3 border rounded mt-2">
+        <div>
+          <div><strong>{{DESCRIPTION}}</strong></div>
+          <div class="small-muted">{{NOTES}}</div>
+        </div>
+        <div class="text-end">
+          <div class="table-amount">{{AMOUNT}}</div>
+        </div>
+      </div>
+
+      <div class="mt-3 small-muted">Amount (in words):</div>
+      <div class="fw-semibold">{{AMOUNT_WORDS}}</div>
+    </div>
+
+    <div class="hr-dashed mb-3"></div>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="small-muted">Created by: <strong>{{CREATED_BY}}</strong></div>
+      <div class="small-muted">Created on: <strong>{{CREATED_DATE}}</strong></div>
+    </div>
+
+    <div class="mt-4 text-center small-muted no-print">
+      <button class="btn btn-primary me-2" id="printReceiptBtn">Print</button>
+      <button class="btn btn-outline-secondary" id="downloadPdfBtn">Download PDF</button>
+    </div>
+  </div>
+
+  <script>
+    // Simple client-side print handler used when the modal loads this template as a standalone page (fallback).
+    document.getElementById('printReceiptBtn')?.addEventListener('click', function(){
+      window.print();
+    });
+
+    // Download PDF button uses print in a new window (browser handles PDF via print-to-PDF)
+    document.getElementById('downloadPdfBtn')?.addEventListener('click', function(){
+      window.print();
+    });
+  </script>
+</body>
+</html>
