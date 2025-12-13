@@ -1,4 +1,4 @@
-// Utility Functions
+// Utility Functions (complete, includes template loader)
 const Utils = {
     // Format date
     formatDate: function(dateString) {
@@ -13,17 +13,17 @@ const Utils = {
     },
 
     // Format currency
-formatCurrency: function(amount, currency = 'USD') {
-    const currencyOptions = {
-        'GHS': { style: 'currency', currency: 'GHS' },
-        'USD': { style: 'currency', currency: 'USD' },
-        'EUR': { style: 'currency', currency: 'EUR' },
-        'GBP': { style: 'currency', currency: 'GBP' }
-    };
-    
-    return new Intl.NumberFormat('en-GH', currencyOptions[currency] || currencyOptions['USD'])
-        .format(amount || 0);
-},
+    formatCurrency: function(amount, currency = 'USD') {
+        const currencyOptions = {
+            'GHS': { style: 'currency', currency: 'GHS' },
+            'USD': { style: 'currency', currency: 'USD' },
+            'EUR': { style: 'currency', currency: 'EUR' },
+            'GBP': { style: 'currency', currency: 'GBP' }
+        };
+        
+        return new Intl.NumberFormat('en-GH', currencyOptions[currency] || currencyOptions['USD'])
+            .format(amount || 0);
+    },
 
     // Generate unique ID
     generateId: function() {
@@ -191,10 +191,31 @@ formatCurrency: function(amount, currency = 'USD') {
         document.body.removeChild(link);
         
         this.showNotification('File downloaded successfully!', 'success');
+    },
+
+    // --- Template helpers ---
+    // Load an HTML template from the templates/ folder
+    loadTemplate: async function(path) {
+        try {
+            const res = await fetch(path, { cache: 'no-cache' });
+            if (!res.ok) throw new Error('Failed to load template: ' + path);
+            return await res.text();
+        } catch (err) {
+            console.error(err);
+            throw err;
+        }
+    },
+
+    // Simple template renderer that replaces {{KEY}} placeholders
+    renderTemplate: function(templateString, data = {}) {
+        let out = templateString;
+        Object.keys(data).forEach(key => {
+            const re = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+            out = out.replace(re, data[key] != null ? data[key] : '');
+        });
+        return out;
     }
 };
-
-
 
 // Make Utils available globally
 window.Utils = Utils;
