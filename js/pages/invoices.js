@@ -1,4 +1,4 @@
-// Invoices Page Module (updated to render invoice via external HTML template)
+// Invoices Page Module (updated to render invoice via external HTML template and include status badge)
 class InvoicesPage {
     constructor(app) {
         this.app = app;
@@ -51,7 +51,7 @@ class InvoicesPage {
                                         <td>${Utils.formatDate(invoice.due_date)}</td>
                                         <td>${Utils.formatCurrency(invoice.total)}</td>
                                         <td>
-                                            <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning'}">
+                                            <span class="badge ${invoice.status === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}">
                                                 ${invoice.status || 'UNPAID'}
                                             </span>
                                             ${this.isOverdue(invoice) ? '<br><small class="text-danger">Overdue</small>' : ''}
@@ -158,7 +158,7 @@ class InvoicesPage {
         }
     }
 
-    // New: render invoice using external HTML template (templates/invoices/invoice-template.html)
+    // Render invoice using external HTML template (templates/invoices/invoice-template.html)
     async showInvoiceModal(invoice) {
         try {
             // Attempt to load template
@@ -195,11 +195,18 @@ class InvoicesPage {
                 </tr>
             `;
 
+            // Determine status badge HTML
+            const status = (invoice.status || 'UNPAID').toString().toUpperCase();
+            const statusBadge = (status === 'PAID')
+                ? '<span class="badge bg-success">PAID</span>'
+                : (status === 'CANCELLED' ? '<span class="badge bg-secondary">CANCELLED</span>' : '<span class="badge bg-warning text-dark">UNPAID</span>');
+
             // Prepare placeholder data
             const data = {
                 'COMPANY_LOGO': '/assets/logo.png',
                 'COMPANY_NAME': 'ACME Billing Solutions',
                 'COMPANY_TAGLINE': 'Professional Invoice Management',
+                'COMPANY_ADDRESS': 'Your Company Address Here',
                 'INVOICE_NUMBER': invoice.invoice_number || '',
                 'DATE': Utils.formatDate(invoice.date),
                 'DUE_DATE': Utils.formatDate(invoice.due_date),
@@ -215,9 +222,10 @@ class InvoicesPage {
                 'SUBTOTAL': Utils.formatCurrency(invoice.subtotal || 0),
                 'TAX': Utils.formatCurrency(invoice.tax || 0),
                 'TOTAL': Utils.formatCurrency(invoice.total || 0),
-                'NOTES': invoice.notes || '',
+                // removed NOTES as requested
                 'PAYMENT_TERMS': (client.payment_terms || 30) + ' days',
                 'REFERENCE': invoice.invoice_number || '',
+                'STATUS_BADGE': statusBadge
             };
 
             const filled = Utils.renderTemplate(template, data);
@@ -377,13 +385,7 @@ class InvoicesPage {
                                 </div>
                             ` : '<p class="text-muted">No items found for this invoice</p>'}
                             
-                            ${invoice.notes ? `
-                                <hr>
-                                <h6>Notes</h6>
-                                <div class="bg-light p-3 rounded">
-                                    ${invoice.notes}
-                                </div>
-                            ` : ''}
+                            <!-- notes removed in fallback modal too -->
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
