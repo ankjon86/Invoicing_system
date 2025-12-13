@@ -1,17 +1,18 @@
+<!-- Dashboard Template -->
 <div class="container-fluid">
-    <!-- Header - Removed Initialize System and Refresh buttons -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Dashboard</h2>
         <div>
-            <button class="btn btn-primary" data-action="add-client">
+            <button class="btn btn-primary" onclick="app.loadPage('client-form')">
                 <i class="bi bi-person-plus me-1"></i> Add Client
             </button>
         </div>
     </div>
     
     <!-- Stats Row -->
-    <div class="row mb-4" id="statsRow">
-        <!-- Stats cards will be populated by JavaScript -->
+    <div class="row mb-4" id="dashboard-stats">
+        <!-- Stats cards will be injected here -->
+        {{STATS_CARDS}}
     </div>
     
     <!-- Quick Actions -->
@@ -24,22 +25,22 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-3 col-6 mb-2">
-                            <button class="btn btn-primary w-100" data-action="add-client">
+                            <button class="btn btn-primary w-100" onclick="app.loadPage('client-form')">
                                 <i class="bi bi-person-plus me-2"></i>Add Client
                             </button>
                         </div>
                         <div class="col-md-3 col-6 mb-2">
-                            <button class="btn btn-success w-100" data-action="create-invoice">
+                            <button class="btn btn-success w-100" onclick="app.loadPage('invoice-form')">
                                 <i class="bi bi-plus-circle me-2"></i>Create Invoice
                             </button>
                         </div>
                         <div class="col-md-3 col-6 mb-2">
-                            <button class="btn btn-info w-100" data-action="view-invoices">
+                            <button class="btn btn-info w-100" onclick="app.loadPage('invoices')">
                                 <i class="bi bi-receipt me-2"></i>View Invoices
                             </button>
                         </div>
                         <div class="col-md-3 col-6 mb-2">
-                            <button class="btn btn-warning w-100" data-action="export-data">
+                            <button class="btn btn-warning w-100" onclick="app.exportData()">
                                 <i class="bi bi-download me-2"></i>Export Data
                             </button>
                         </div>
@@ -48,19 +49,19 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Recent Data -->
     <div class="row">
         <div class="col-md-6 mb-4">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Clients</h5>
-                    <a href="#" class="btn btn-sm btn-outline-primary" data-action="view-all-clients">
+                    <a href="#" class="btn btn-sm btn-outline-primary" onclick="app.loadPage('clients')">
                         View All
                     </a>
                 </div>
-                <div class="card-body" id="recentClients">
-                    <!-- Recent clients will be populated here -->
+                <div class="card-body" id="recent-clients">
+                    {{RECENT_CLIENTS}}
                 </div>
             </div>
         </div>
@@ -69,12 +70,12 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Recent Invoices</h5>
-                    <a href="#" class="btn btn-sm btn-outline-primary" data-action="view-all-invoices">
+                    <a href="#" class="btn btn-sm btn-outline-primary" onclick="app.loadPage('invoices')">
                         View All
                     </a>
                 </div>
-                <div class="card-body" id="recentInvoices">
-                    <!-- Recent invoices will be populated here -->
+                <div class="card-body" id="recent-invoices">
+                    {{RECENT_INVOICES}}
                 </div>
             </div>
         </div>
