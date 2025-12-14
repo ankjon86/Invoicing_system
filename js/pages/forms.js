@@ -180,7 +180,15 @@ class FormsPage {
                 unit: fd.get('unit') || 'each'
             };
 
-            if (!productData.name) throw new Error('Product name is required');
+            // simple validation
+            if (!productData.name || productData.name.trim() === '') {
+                Utils.showNotification('Product name is required', 'warning');
+                return;
+            }
+            if (productData.price < 0) {
+                Utils.showNotification('Price cannot be negative', 'warning');
+                return;
+            }
 
             const resp = await apiService.addProduct(productData);
             if (!resp || !resp.success) throw new Error((resp && resp.error) || 'Failed to add product');
@@ -428,7 +436,7 @@ class FormsPage {
         }
     }
 
-    // --- Invoice handling ---
+    // --- Invoice & Receipt helpers ---
 
     addInvoiceItem() {
         const itemsContainer = document.getElementById('invoiceItems');
@@ -690,7 +698,8 @@ class FormsPage {
                             if (schedule.payment_terms) form.querySelector('[name="payment_terms"]').value = schedule.payment_terms;
                             if (schedule.billing_day) form.querySelector('[name="billing_day"]').value = schedule.billing_day;
                             if (schedule.auto_generate !== undefined) {
-                                form.querySelector('[name="auto_generate"]').value = schedule.auto_generate ? 'true' : 'false';
+                                const el = form.querySelector('[name="auto_renew"]');
+                                if (el) el.checked = !!schedule.auto_generate;
                             }
                             if (schedule.reminder_days_before) form.querySelector('[name="reminder_days"]').value = schedule.reminder_days_before;
                             if (schedule.bill_description) form.querySelector('[name="bill_description"]').value = schedule.bill_description;
@@ -744,7 +753,6 @@ class FormsPage {
                     } catch (e) {
                         console.error('editClient parse failed', e);
                     }
-                    // keep removal to after user submits or navigates
                 }
 
                 // Prefill invoice edit
