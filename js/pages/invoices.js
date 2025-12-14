@@ -125,8 +125,19 @@ class InvoicesPage {
         }
     }
 
-    editInvoice(invoiceId) {
-        Utils.showNotification('Edit invoice feature coming soon!', 'info');
+    // Edit invoice: store invoice data in localStorage and navigate to invoice form to edit
+    async editInvoice(invoiceId) {
+        try {
+            const res = await apiService.getInvoice(invoiceId);
+            if (!res.success) {
+                throw new Error(res.error || 'Invoice not found');
+            }
+            localStorage.setItem('editInvoice', JSON.stringify(res.data));
+            window.location.hash = 'invoice-form';
+        } catch (error) {
+            console.error('Error preparing invoice edit:', error);
+            Utils.showNotification('Error preparing invoice edit: ' + error.message, 'danger');
+        }
     }
 
     async markAsPaid(invoiceId) {
