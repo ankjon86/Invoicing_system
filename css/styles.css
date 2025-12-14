@@ -249,3 +249,33 @@ body {
 .fade-in {
     animation: fadeIn 0.3s ease-out;
 }
+/* Hide the global overlay loader created by Utils.showLoading() */
+#global-loader {
+  display: none !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+/* Utility: hide all Bootstrap spinner elements when you need to suppress inline spinners.
+   To apply project-wide, add the class "hide-spinners" on <body>.
+   To hide a specific container's spinners, add the class "no-spinner" to that container. */
+.hide-spinners .spinner-border,
+.hide-spinners .spinner-grow,
+.no-spinner .spinner-border,
+.no-spinner .spinner-grow,
+.spinner-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* If you only want to hide the initial content-loading spinner inside #content,
+   target it specifically (more conservative): */
+#content .spinner-border,
+#content .spinner-grow {
+  display: none !important;
+}
