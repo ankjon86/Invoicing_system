@@ -906,8 +906,7 @@ class BillingPage {
         Utils.showNotification('Edit contract feature coming soon!', 'info');
     }
 
-    editSchedule(scheduleId) {
-        // load schedule details then show edit modal
+        editSchedule(scheduleId) {
         (async () => {
             try {
                 Utils.showLoading(true);
@@ -916,107 +915,14 @@ class BillingPage {
                 const schedule = res.data.find(s => s.schedule_id === scheduleId);
                 if (!schedule) throw new Error('Schedule not found');
 
-                const modalHtml = `
-                    <div class="modal fade" id="editScheduleModal" tabindex="-1">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Edit Billing Schedule</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <form id="editScheduleForm">
-                                        <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">Billing Frequency</label>
-                                                <input class="form-control" name="billing_frequency" value="${schedule.billing_frequency || ''}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Billing Amount</label>
-                                                <input class="form-control" name="billing_amount" type="number" step="0.01" value="${schedule.billing_amount || 0}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Billing Day</label>
-                                                <input class="form-control" name="billing_day" type="number" value="${schedule.billing_day || 1}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Billing Cycle</label>
-                                                <input class="form-control" name="billing_cycle" value="${schedule.billing_cycle || ''}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Tax Rate (%)</label>
-                                                <input class="form-control" name="tax_rate" type="number" step="0.01" value="${schedule.tax_rate || 0}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Reminder Days (comma separated)</label>
-                                                <input class="form-control" name="reminder_days_before" value="${schedule.reminder_days_before || ''}">
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Auto-generate</label>
-                                                <select class="form-select" name="auto_generate">
-                                                    <option value="true" ${schedule.auto_generate ? 'selected' : ''}>Yes</option>
-                                                    <option value="false" ${!schedule.auto_generate ? 'selected' : ''}>No</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Status</label>
-                                                <select class="form-select" name="status">
-                                                    <option value="ACTIVE" ${schedule.status === 'ACTIVE' ? 'selected' : ''}>ACTIVE</option>
-                                                    <option value="PAUSED" ${schedule.status === 'PAUSED' ? 'selected' : ''}>PAUSED</option>
-                                                    <option value="CANCELLED" ${schedule.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button class="btn btn-primary" id="saveScheduleBtn">Save Changes</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                const container = document.createElement('div');
-                container.innerHTML = modalHtml;
-                document.body.appendChild(container);
-                const modalEl = document.getElementById('editScheduleModal');
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
+                // Persist schedule into localStorage so the client-form billing tab can prefill values
+                localStorage.setItem('editSchedule', JSON.stringify(schedule));
+                // Indicate which tab to open: 'billing'
+                localStorage.setItem('openTab', 'billing');
 
-                document.getElementById('saveScheduleBtn').addEventListener('click', async () => {
-                    try {
-                        Utils.showLoading(true);
-                        const form = document.getElementById('editScheduleForm');
-                        const fd = new FormData(form);
-                        const updates = {
-                            billing_frequency: fd.get('billing_frequency'),
-                            billing_amount: parseFloat(fd.get('billing_amount')) || 0,
-                            billing_day: parseInt(fd.get('billing_day')) || schedule.billing_day,
-                            billing_cycle: fd.get('billing_cycle'),
-                            tax_rate: parseFloat(fd.get('tax_rate')) || 0,
-                            reminder_days_before: fd.get('reminder_days_before'),
-                            auto_generate: fd.get('auto_generate') === 'true',
-                            status: fd.get('status'),
-                            last_modified: new Date().toISOString()
-                        };
-
-                        const resp = await apiService.updateBillingSchedule({ id: schedule.schedule_id, updates });
-                        if (!resp.success) throw new Error(resp.error || 'Failed to update schedule');
-                        Utils.showNotification('Schedule updated', 'success');
-                        modal.hide();
-                        this.app.loadPage('billing');
-                    } catch (err) {
-                        console.error('Error saving schedule:', err);
-                        Utils.showNotification('Error saving schedule: ' + err.message, 'danger');
-                    } finally {
-                        Utils.showLoading(false);
-                    }
-                });
-
-                modalEl.addEventListener('hidden.bs.modal', function () {
-                    container.remove();
-                });
+                // Navigate to client-form where billing tab UI exists
+                window.location.hash = 'client-form';
+                Utils.showNotification('Opening billing form... edit values then Save Client to update (billing schedule update flow).', 'info');
 
             } catch (error) {
                 console.error('editSchedule error:', error);
