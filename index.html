@@ -63,6 +63,7 @@
             <li class="nav-item"><a class="nav-link" href="#invoices" onclick="loadPage('invoices')"><i class="bi bi-receipt me-2"></i> Invoices</a></li>
             <li class="nav-item"><a class="nav-link" href="#billing" onclick="loadPage('billing')"><i class="bi bi-credit-card me-2"></i> Billing</a></li>
             <li class="nav-item"><a class="nav-link" href="#receipts" onclick="loadPage('receipts')"><i class="bi bi-journal-text me-2"></i> Receipts</a></li>
+            <li class="nav-item"><a class="nav-link" href="#products" onclick="loadPage('products')"><i class="bi bi-box-seam me-2"></i> Products</a></li>
           </ul>
 
           <hr class="my-3" />
@@ -71,6 +72,7 @@
             <li class="nav-item"><a class="nav-link" href="#client-form" onclick="loadPage('client-form')"><i class="bi bi-person-plus me-2"></i> Add Client</a></li>
             <li class="nav-item"><a class="nav-link" href="#invoice-form" onclick="loadPage('invoice-form')"><i class="bi bi-plus-circle me-2"></i> Create Invoice</a></li>
             <li class="nav-item"><a class="nav-link" href="#receipt-form" onclick="loadPage('receipt-form')"><i class="bi bi-receipt-cutoff me-2"></i> Create Receipt</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" onclick="openAddProduct()"><i class="bi bi-box-seam me-2"></i> Add Product</a></li>
           </ul>
         </div>
       </div>
@@ -109,6 +111,7 @@
   <script src="js/pages/billing.js"></script>
   <script src="js/pages/forms.js"></script>
   <script src="js/pages/receipts.js"></script>
+  <script src="js/pages/products.js"></script>
 
   <!-- App entry -->
   <script src="js/app.js"></script>
@@ -131,44 +134,6 @@
       localStorage.clear(); 
       location.reload(); 
     };
-
-    // Quick Actions: add product button (placed in quick actions area via JS injection to avoid changing layout markup elsewhere)
-    (function addQuickActionButtons() {
-      try {
-        // Find the Quick Actions card area on the Dashboard (it exists in templates/dashboard.html)
-        // We'll add the "Add Product" quick action into the Quick Actions row if found, otherwise create a floating quick button.
-        const insertButton = () => {
-          const quickRows = document.querySelectorAll('.card .card-body .row');
-          if (quickRows && quickRows.length > 0) {
-            // find the first Quick Actions block (heuristic)
-            const row = quickRows[0];
-            // create column with button
-            const col = document.createElement('div');
-            col.className = 'col-md-3 col-6 mb-2';
-            col.innerHTML = `
-              <button class="btn btn-secondary w-100" onclick="openAddProduct()" title="Add Product">
-                <i class="bi bi-box-seam me-2"></i>Add Product
-              </button>
-            `;
-            row.appendChild(col);
-            return true;
-          }
-          return false;
-        };
-
-        // Try to insert after a short delay (templates loaded later)
-        let tries = 0;
-        const t = setInterval(() => {
-          tries++;
-          if (insertButton() || tries > 20) {
-            clearInterval(t);
-          }
-        }, 150);
-
-      } catch (e) {
-        console.error('Failed to inject Add Product quick action:', e);
-      }
-    })();
 
     // Global helper to open Add Product modal. Tries to call formsPage.openAddProductModal(), retries a few times if not ready.
     window.openAddProduct = function () {
