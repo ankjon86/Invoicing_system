@@ -213,14 +213,29 @@ class ClientsPage {
         document.getElementById('clientViewModal').addEventListener('hidden.bs.modal', () => container.remove());
     }
 
-        async editClient(clientId) {
+    // Opens the client form for editing (stores the client data in localStorage & navigates)
+    openClientForm(client) {
+        try {
+            localStorage.setItem('editClient', JSON.stringify(client));
+            window.location.hash = 'client-form';
+        } catch (e) {
+            console.error('openClientForm error:', e);
+            Utils.showNotification('Failed to open edit form', 'danger');
+        }
+    }
+
+    async editClient(clientId) {
         const client = this.getClientById(clientId);
         if (!client) {
             // call backend in case page's state is stale
-            const res = await apiService.getClient({ client_id: clientId });
-            if (res && res.success) {
-                this.openClientForm(res.data);
-                return;
+            try {
+                const res = await apiService.getClient(clientId);
+                if (res && res.success) {
+                    this.openClientForm(res.data);
+                    return;
+                }
+            } catch (e) {
+                console.error('Error fetching client for edit:', e);
             }
             Utils.showNotification('Client not found', 'warning');
             return;
