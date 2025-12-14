@@ -152,6 +152,15 @@ class ApiService {
     return this.request('get_products', {});
   }
 
+  // New product endpoints
+  async updateProduct(productData) {
+    return this.request('update_product', productData);
+  }
+
+  async deleteProduct(productId) {
+    return this.request('delete_product', { id: productId });
+  }
+
   // System APIs
   async initializeSystem() {
     return this.request('initialize_system', {});
