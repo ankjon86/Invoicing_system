@@ -1,4 +1,5 @@
 // Forms Page Module (for Client, Invoice, Receipt forms)
+// Updated: client-form now loads product options and supports prefill when editing a schedule
 class FormsPage {
     constructor(app) {
         this.app = app;
@@ -13,8 +14,23 @@ class FormsPage {
         try {
             // Client form
             if (formType === 'client-form') {
-                const template = await Utils.loadTemplate('templates/forms/client-form.html');
-                return template;
+                // Load template and fetch products to render dropdown options
+                const [template, productsRes] = await Promise.all([
+                    Utils.loadTemplate('templates/forms/client-form.html'),
+                    apiService.getProducts()
+                ]);
+
+                this.products = (productsRes && productsRes.success) ? (productsRes.data || []) : [];
+
+                const productOptions = this.products.map(p => {
+                    const price = p.price != null ? p.price : '';
+                    const tax = p.tax_rate != null ? p.tax_rate : 0;
+                    return `<option value="${p.product_id}" data-price="${price}" data-tax="${tax}" data-description="${(p.description || '').replace(/"/g, '&quot;')}">
+                              ${p.name} — ${Utils.formatCurrency(price || 0, p.currency || 'USD')}
+                            </option>`;
+                }).join('\n');
+
+                return Utils.renderTemplate(template, { 'PRODUCT_OPTIONS': productOptions });
             }
 
             // Invoice form
@@ -181,7 +197,7 @@ class FormsPage {
             const billingFields = [
                 'billing_frequency', 'billing_amount', 'tax_rate', 'tax_inclusive',
                 'quantity', 'start_date', 'end_date', 'payment_terms', 
-                'bill_description', 'auto_renew', 'billing_day', 'reminder_days'
+                'bill_description', 'auto_renew', 'billing_day', 'reminder_days', 'product_id'
             ];
             
             billingFields.forEach(function(field) {
@@ -212,7 +228,8 @@ class FormsPage {
                         billing_day: billingSchedule.billing_day,
                         reminder_days: billingSchedule.reminder_days,
                         status: billingSchedule.status,
-                        auto_generate: billingSchedule.auto_generate
+                        auto_generate: billingSchedule.auto_generate,
+                        items: billingSchedule.product_id ? [{ product_id: billingSchedule.product_id, unit_price: billingSchedule.billing_amount }] : []
                     });
                     
                     if (scheduleResponse.success) {
@@ -435,7 +452,7 @@ class FormsPage {
         
         // Initialize tabs for client form
         if (this.currentForm === 'client-form') {
-            setTimeout(function() {
+            setTimeout(() => {
                 const triggerTabList = document.querySelectorAll('#clientFormTabs button');
                 triggerTabList.forEach(function(triggerEl) {
                     triggerEl.addEventListener('click', function(event) {
@@ -444,18 +461,97 @@ class FormsPage {
                         tab.show();
                     });
                 });
+
+                // If products were loaded during render, wire product select change to prefill amount/tax/description
+                const productSelect = document.getElementById('billing-product-select');
+                if (productSelect) {
+                    productSelect.addEventListener('change', (ev) => {
+                        const pid = ev.target.value;
+                        const selected = this.products ? this.products.find(p => p.product_id === pid) : null;
+                        if (selected) {
+                            const price = selected.price != null ? selected.price : 0;
+                            const tax = selected.tax_rate != null ? selected.tax_rate : 0;
+                            const desc = selected.description || '';
+                            const amountEl = document.getElementById('billing-amount');
+                            const taxEl = document.getElementById('billing-tax-rate');
+                            const descEl = document.getElementById('billing-description');
+                            if (amountEl) amountEl.value = price;
+                            if (taxEl) taxEl.value = tax;
+                            if (descEl && !descEl.value) descEl.value = desc;
+                        }
+                    });
+                }
+
+                // If an editSchedule has been set, prefill the billing tab fields and show billing tab
+                const editScheduleRaw = localStorage.getItem('editSchedule');
+                const openTab = localStorage.getItem('openTab');
+                if (openTab === 'billing') {
+                    // show billing tab
+                    const billingTabTrigger = Array.from(document.querySelectorAll('#clientFormTabs button')).find(b => b.getAttribute('data-bs-target') === '#billingTermsTab');
+                    if (billingTabTrigger) {
+                        const tab = new bootstrap.Tab(billingTabTrigger);
+                        tab.show();
+                    }
+                }
+
+                if (editScheduleRaw) {
+                    try {
+                        const schedule = JSON.parse(editScheduleRaw);
+                        // Wait a tick to ensure fields are present
+                        setTimeout(() => {
+                            const form = document.getElementById('clientForm');
+                            if (!form) return;
+
+                            // Fill billing fields if present on schedule
+                            if (schedule.billing_frequency) form.querySelector('[name="billing_frequency"]').value = schedule.billing_frequency;
+                            if (schedule.billing_amount) form.querySelector('[name="billing_amount"]').value = schedule.billing_amount;
+                            if (schedule.tax_rate) form.querySelector('[name="tax_rate"]').value = schedule.tax_rate;
+                            if (schedule.quantity) form.querySelector('[name="quantity"]').value = schedule.quantity;
+                            if (schedule.start_date) form.querySelector('[name="start_date"]').value = schedule.start_date;
+                            if (schedule.end_date) form.querySelector('[name="end_date"]').value = schedule.end_date;
+                            if (schedule.payment_terms) form.querySelector('[name="payment_terms"]').value = schedule.payment_terms;
+                            if (schedule.billing_day) form.querySelector('[name="billing_day"]').value = schedule.billing_day;
+                            if (schedule.auto_generate !== undefined) {
+                                form.querySelector('[name="auto_generate"]').value = schedule.auto_generate ? 'true' : 'false';
+                            }
+                            if (schedule.reminder_days_before) form.querySelector('[name="reminder_days"]').value = schedule.reminder_days_before;
+                            if (schedule.bill_description) form.querySelector('[name="bill_description"]').value = schedule.bill_description;
+
+                            // If schedule has items and a product_id is present, select it
+                            try {
+                                const items = schedule.items || [];
+                                if (items.length > 0) {
+                                    const first = items[0];
+                                    if (first.product_id) {
+                                        const sel = document.getElementById('billing-product-select');
+                                        if (sel) sel.value = first.product_id;
+                                        // trigger change to set amount/tax/description from product
+                                        sel && sel.dispatchEvent(new Event('change'));
+                                    }
+                                }
+                            } catch (e) {
+                                // ignore
+                            }
+
+                            // Once used, keep editSchedule if you want user to submit changes; do NOT auto-remove here.
+                        }, 120);
+                    } catch (e) {
+                        console.error('Failed to parse editSchedule:', e);
+                    }
+                }
+
             }, 100);
         }
 
-        // Prefill editClient if present
+        // Prefill edit forms for client/invoice/receipt if present (existing logic)
         try {
+            // Prefill client edit if present
             if (this.currentForm === 'client-form') {
                 const edit = localStorage.getItem('editClient');
                 if (edit) {
                     const client = JSON.parse(edit);
                     const form = document.getElementById('clientForm');
                     if (form) {
-                        // hidden input for client_id
                         let input = form.querySelector('input[name="client_id"]');
                         if (!input) {
                             input = document.createElement('input');
@@ -465,7 +561,6 @@ class FormsPage {
                         }
                         input.value = client.client_id || '';
 
-                        // populate fields by name
                         Object.keys(client).forEach(k => {
                             try {
                                 const el = form.querySelector(`[name="${k}"]`);
@@ -480,7 +575,6 @@ class FormsPage {
                             } catch (e) {}
                         });
                     }
-                    // remove edit flag after use
                     localStorage.removeItem('editClient');
                 }
             }
@@ -490,11 +584,9 @@ class FormsPage {
                 const editInv = localStorage.getItem('editInvoice');
                 if (editInv) {
                     const invoice = JSON.parse(editInv);
-                    // wait a tick to ensure DOM exists
                     setTimeout(() => {
                         const form = document.getElementById('invoiceForm');
                         if (!form) return;
-                        // add hidden invoice_id
                         let hid = form.querySelector('input[name="invoice_id"]');
                         if (!hid) {
                             hid = document.createElement('input');
@@ -504,7 +596,6 @@ class FormsPage {
                         }
                         hid.value = invoice.invoice_id || '';
 
-                        // set basic fields
                         const clientSelect = document.getElementById('invoice-client-select');
                         if (clientSelect) clientSelect.value = invoice.client_id || '';
 
@@ -513,7 +604,6 @@ class FormsPage {
                         form.querySelector('select[name="currency"]').value = invoice.currency || 'GHS';
                         form.querySelector('textarea[name="notes"]').value = invoice.notes || '';
 
-                        // populate items
                         const itemsContainer = document.getElementById('invoiceItems');
                         if (itemsContainer) {
                             itemsContainer.innerHTML = '';
