@@ -131,6 +131,73 @@
       localStorage.clear(); 
       location.reload(); 
     };
+
+    // Quick Actions: add product button (placed in quick actions area via JS injection to avoid changing layout markup elsewhere)
+    (function addQuickActionButtons() {
+      try {
+        // Find the Quick Actions card area on the Dashboard (it exists in templates/dashboard.html)
+        // We'll add the "Add Product" quick action into the Quick Actions row if found, otherwise create a floating quick button.
+        const insertButton = () => {
+          const quickRows = document.querySelectorAll('.card .card-body .row');
+          if (quickRows && quickRows.length > 0) {
+            // find the first Quick Actions block (heuristic)
+            const row = quickRows[0];
+            // create column with button
+            const col = document.createElement('div');
+            col.className = 'col-md-3 col-6 mb-2';
+            col.innerHTML = `
+              <button class="btn btn-secondary w-100" onclick="openAddProduct()" title="Add Product">
+                <i class="bi bi-box-seam me-2"></i>Add Product
+              </button>
+            `;
+            row.appendChild(col);
+            return true;
+          }
+          return false;
+        };
+
+        // Try to insert after a short delay (templates loaded later)
+        let tries = 0;
+        const t = setInterval(() => {
+          tries++;
+          if (insertButton() || tries > 20) {
+            clearInterval(t);
+          }
+        }, 150);
+
+      } catch (e) {
+        console.error('Failed to inject Add Product quick action:', e);
+      }
+    })();
+
+    // Global helper to open Add Product modal. Tries to call formsPage.openAddProductModal(), retries a few times if not ready.
+    window.openAddProduct = function () {
+      try {
+        if (window.formsPage && typeof window.formsPage.openAddProductModal === 'function') {
+          return window.formsPage.openAddProductModal();
+        }
+        if (!window.Utils) {
+          alert('Product form not ready yet');
+          return;
+        }
+        Utils.showNotification('Opening product form...', 'info');
+
+        let attempts = 0;
+        const interval = setInterval(() => {
+          attempts++;
+          if (window.formsPage && typeof window.formsPage.openAddProductModal === 'function') {
+            window.formsPage.openAddProductModal();
+            clearInterval(interval);
+          } else if (attempts >= 10) {
+            clearInterval(interval);
+            Utils.showNotification('Product form is not available right now. Please try again in a moment.', 'warning');
+          }
+        }, 200);
+      } catch (err) {
+        console.error('openAddProduct error:', err);
+        try { Utils.showNotification('Failed to open product form', 'danger'); } catch (e) {}
+      }
+    };
   </script>
 </body>
 </html>
