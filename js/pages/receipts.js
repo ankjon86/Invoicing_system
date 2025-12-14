@@ -56,6 +56,9 @@ class ReceiptsPage {
                                                 <button class="btn btn-outline-primary" onclick="receiptsPage.viewReceipt('${r.receipt_id}')">
                                                     <i class="bi bi-eye"></i>
                                                 </button>
+                                                <button class="btn btn-outline-secondary" onclick="receiptsPage.editReceipt('${r.receipt_id}')">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
                                                 <button class="btn btn-outline-danger" onclick="receiptsPage.deleteReceipt('${r.receipt_id}')">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
@@ -233,7 +236,7 @@ class ReceiptsPage {
             modal.show();
 
             document.getElementById('printFromModalBtn').addEventListener('click', function () {
-                const receiptHtml = modalEl.querySelector('.receipt-container').outerHTML;
+                const receiptHtml = modalEl.querySelector('.receipt-container') ? modalEl.querySelector('.receipt-container').outerHTML : modalEl.querySelector('.receipt-page').outerHTML;
                 const printWindow = window.open('', '_blank', 'width=800,height=600');
                 printWindow.document.write(`
                     <html>
@@ -258,6 +261,19 @@ class ReceiptsPage {
         } catch (error) {
             console.error('Error viewing receipt:', error);
             Utils.showNotification('Error loading receipt', 'danger');
+        }
+    }
+
+    // Edit receipt: store data and go to receipt form
+    async editReceipt(receiptId) {
+        try {
+            const res = await apiService.getReceipt(receiptId);
+            if (!res.success) throw new Error(res.error || 'Receipt not found');
+            localStorage.setItem('editReceipt', JSON.stringify(res.data));
+            window.location.hash = 'receipt-form';
+        } catch (error) {
+            console.error('Error preparing receipt edit:', error);
+            Utils.showNotification('Error preparing receipt edit: ' + error.message, 'danger');
         }
     }
 
