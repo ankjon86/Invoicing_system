@@ -108,12 +108,10 @@ class ProductsPage {
     }, 100);
   }
 
-  // open Add Product (use formsPage if available to reuse product form/modal)
   async openAddProduct() {
     if (window.formsPage && typeof window.formsPage.openAddProductModal === 'function') {
       return window.formsPage.openAddProductModal();
     }
-    // Fallback: create modal inline using same template
     try {
       const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
       this._showProductModal({ mode: 'add', tpl });
@@ -123,10 +121,8 @@ class ProductsPage {
     }
   }
 
-  // open edit product modal
   async openEditProduct(productId) {
     try {
-      // find product
       let product = this.products.find(p => p.product_id === productId);
       if (!product) {
         const res = await apiService.getProducts();
@@ -143,7 +139,6 @@ class ProductsPage {
     }
   }
 
-  // internal: show modal for add/edit product (tpl string, mode add/edit, product optional)
   _showProductModal({ mode = 'add', tpl, product = {} }) {
     const container = document.createElement('div');
     container.innerHTML = `
@@ -166,7 +161,6 @@ class ProductsPage {
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
-    // populate fields if editing
     const form = modalEl.querySelector('#productForm');
     if (!form) return;
     if (mode === 'edit' && product) {
@@ -178,7 +172,6 @@ class ProductsPage {
       form.querySelector('[name="description"]').value = product.description || '';
     }
 
-    // handle submit
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       try {
@@ -204,7 +197,6 @@ class ProductsPage {
         }
 
         modal.hide();
-        // refresh list
         await this.reload();
       } catch (err) {
         console.error('product save error:', err);
@@ -220,7 +212,6 @@ class ProductsPage {
   }
 
   async confirmDeleteProduct(productId) {
-    // simple confirm modal
     const ok = await this._showConfirmModal('Delete Product', 'Are you sure you want to delete this product? This action cannot be undone.');
     if (!ok) return;
     try {
@@ -237,7 +228,6 @@ class ProductsPage {
     }
   }
 
-  // reload page data
   async reload() {
     try {
       const res = await apiService.getProducts();
@@ -245,13 +235,12 @@ class ProductsPage {
       const content = this.products.length ? this.buildTable() : this.buildEmpty();
       const container = document.getElementById('products-content');
       if (container) container.innerHTML = content;
-      this.initialize(); // re-wire events
+      this.initialize();
     } catch (err) {
       console.error('reload products error:', err);
     }
   }
 
-  // small confirm modal helper returns Promise<boolean>
   _showConfirmModal(title, message) {
     return new Promise((resolve) => {
       const id = 'confirmModal_' + Date.now();
@@ -293,7 +282,7 @@ class ProductsPage {
   }
 }
 
-// small helpers in Utils to show message modal (add to Utils if not present)
+// small helpers in Utils to show message modal (added if missing)
 if (!Utils.showMessageModal) {
   Utils.showMessageModal = function(title, message) {
     const id = 'messageModal_' + Date.now();
