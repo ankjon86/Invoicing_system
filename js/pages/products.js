@@ -9,7 +9,8 @@ class ProductsPage {
     try {
       const [res, tpl] = await Promise.all([
         apiService.getProducts(),
-        Utils.loadTemplate('templates/products.html')
+        // Path adjusted to match repo layout (file at project root: products.html)
+        Utils.loadTemplate('products.html')
       ]);
 
       this.products = (res && res.success) ? (res.data || []) : [];
@@ -109,11 +110,13 @@ class ProductsPage {
   }
 
   async openAddProduct() {
+    // Prefer the central form handler if available to avoid duplicate implementations
     if (window.formsPage && typeof window.formsPage.openAddProductModal === 'function') {
       return window.formsPage.openAddProductModal();
     }
     try {
-      const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
+      // Path adjusted to repo layout (product-form.html at project root)
+      const tpl = await Utils.loadTemplate('product-form.html');
       this._showProductModal({ mode: 'add', tpl });
     } catch (err) {
       console.error('openAddProduct fallback error:', err);
@@ -131,7 +134,8 @@ class ProductsPage {
       }
       if (!product) return Utils.showNotification('Product not found', 'warning');
 
-      const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
+      // Load template from root product-form.html
+      const tpl = await Utils.loadTemplate('product-form.html');
       this._showProductModal({ mode: 'edit', tpl, product });
     } catch (err) {
       console.error('openEditProduct error:', err);
@@ -140,6 +144,16 @@ class ProductsPage {
   }
 
   _showProductModal({ mode = 'add', tpl, product = {} }) {
+    // Prevent duplicate modal instances
+    if (document.getElementById('productMgmtModal')) {
+      // If already open, just focus / return
+      const existing = bootstrap.Modal.getInstance(document.getElementById('productMgmtModal'));
+      if (existing) {
+        existing.show();
+      }
+      return;
+    }
+
     const container = document.createElement('div');
     container.innerHTML = `
       <div class="modal fade" id="productMgmtModal" tabindex="-1">
