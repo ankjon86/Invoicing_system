@@ -4,7 +4,7 @@
         <div class="col-lg-12">
             <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">Add New Client</h5>
+                    <h5 class="mb-0">Add / Edit Client</h5>
                 </div>
                 <div class="card-body">
                     <form id="clientForm" onsubmit="return formsPage.submitClientForm(event)">
@@ -122,13 +122,23 @@
                                                 <option value="ONE_TIME">One-time</option>
                                             </select>
                                         </div>
+
+                                        <div class="mb-3">
+                                            <label class="form-label">Product (optional)</label>
+                                            <select class="form-select" name="product_id" id="billing-product-select">
+                                                <option value="">Select a product...</option>
+                                                {{PRODUCT_OPTIONS}}
+                                            </select>
+                                            <div class="form-text">Selecting a product will prefill amount, tax and description.</div>
+                                        </div>
+
                                         <div class="mb-3">
                                             <label class="form-label">Amount *</label>
-                                            <input type="number" class="form-control" name="billing_amount" placeholder="0.00" step="0.01" required>
+                                            <input type="number" id="billing-amount" class="form-control" name="billing_amount" placeholder="0.00" step="0.01" required>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Tax Rate (%)</label>
-                                            <input type="number" class="form-control" name="tax_rate" value="0" step="0.01" min="0" max="100">
+                                            <input type="number" id="billing-tax-rate" class="form-control" name="tax_rate" value="0" step="0.01" min="0" max="100">
                                             <div class="form-text">Tax percentage to apply</div>
                                         </div>
                                     </div>
@@ -200,7 +210,7 @@
                                     <div class="col-12">
                                         <div class="mb-3">
                                             <label class="form-label">Description of Bill *</label>
-                                            <textarea class="form-control" name="bill_description" rows="3" placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
+                                            <textarea class="form-control" name="bill_description" id="billing-description" rows="3" placeholder="Describe the service/product being billed. This will appear on invoices..." required></textarea>
                                             <div class="form-text">This description will appear on generated invoices</div>
                                         </div>
                                     </div>
