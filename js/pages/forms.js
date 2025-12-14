@@ -16,8 +16,7 @@ class FormsPage {
             if (formType === 'client-form') {
                 // Load template and fetch products to render dropdown options
                 const [template, productsRes] = await Promise.all([
-                    // Adjusted to match repo layout (client-form.html at project root)
-                    Utils.loadTemplate('client-form.html'),
+                    Utils.loadTemplate('templates/forms/client-form.html'),
                     apiService.getProducts()
                 ]);
 
@@ -38,7 +37,7 @@ class FormsPage {
             if (formType === 'invoice-form') {
                 const [clientsResponse, template] = await Promise.all([
                     apiService.getClients(),
-                    Utils.loadTemplate('invoice-form.html')
+                    Utils.loadTemplate('templates/forms/invoice-form.html')
                 ]);
 
                 this.clients = clientsResponse.success ? clientsResponse.data : [];
@@ -130,17 +129,7 @@ class FormsPage {
 
     async openAddProductModal() {
         try {
-            // Prevent duplicate modal instances
-            if (document.getElementById('addProductModal')) {
-                const existing = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-                if (existing) {
-                    existing.show();
-                    return;
-                }
-            }
-
-            // Adjusted to repo layout (product-form.html at project root)
-            const tpl = await Utils.loadTemplate('product-form.html');
+            const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
             const container = document.createElement('div');
             container.innerHTML = `
                 <div class="modal fade" id="addProductModal" tabindex="-1">
