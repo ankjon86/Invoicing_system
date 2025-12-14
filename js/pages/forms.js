@@ -1,5 +1,6 @@
-// Forms Page Module (complete)
+// Forms Page Module (merged + robust template loading + original template-first approach)
 // Handles Client, Invoice, Receipt forms, product add modal, and schedule-edit handoff
+
 class FormsPage {
     constructor(app) {
         this.app = app;
@@ -19,6 +20,13 @@ class FormsPage {
                     Utils.loadTemplate('templates/forms/client-form.html'),
                     apiService.getProducts()
                 ]);
+
+                // If there's no editSchedule/editClient present, clear any leftover openTab to ensure Basic Info is the active tab
+                const hasEditSchedule = !!localStorage.getItem('editSchedule');
+                const hasEditClient = !!localStorage.getItem('editClient');
+                if (!hasEditSchedule && !hasEditClient && localStorage.getItem('openTab')) {
+                    localStorage.removeItem('openTab');
+                }
 
                 this.products = (productsRes && productsRes.success) ? (productsRes.data || []) : [];
 
