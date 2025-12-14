@@ -9,8 +9,8 @@ class ProductsPage {
     try {
       const [res, tpl] = await Promise.all([
         apiService.getProducts(),
-        // Path adjusted to match repo layout (file at project root: products.html)
-        Utils.loadTemplate('products.html')
+        // load the template from the same "templates/..." convention as invoices/receipts
+        Utils.loadTemplate('templates/products.html')
       ]);
 
       this.products = (res && res.success) ? (res.data || []) : [];
@@ -115,8 +115,7 @@ class ProductsPage {
       return window.formsPage.openAddProductModal();
     }
     try {
-      // Path adjusted to repo layout (product-form.html at project root)
-      const tpl = await Utils.loadTemplate('product-form.html');
+      const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
       this._showProductModal({ mode: 'add', tpl });
     } catch (err) {
       console.error('openAddProduct fallback error:', err);
@@ -134,8 +133,7 @@ class ProductsPage {
       }
       if (!product) return Utils.showNotification('Product not found', 'warning');
 
-      // Load template from root product-form.html
-      const tpl = await Utils.loadTemplate('product-form.html');
+      const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
       this._showProductModal({ mode: 'edit', tpl, product });
     } catch (err) {
       console.error('openEditProduct error:', err);
@@ -146,11 +144,8 @@ class ProductsPage {
   _showProductModal({ mode = 'add', tpl, product = {} }) {
     // Prevent duplicate modal instances
     if (document.getElementById('productMgmtModal')) {
-      // If already open, just focus / return
       const existing = bootstrap.Modal.getInstance(document.getElementById('productMgmtModal'));
-      if (existing) {
-        existing.show();
-      }
+      if (existing) existing.show();
       return;
     }
 
