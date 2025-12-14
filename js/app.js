@@ -93,12 +93,13 @@ class InvoiceApp {
 
     async loadInitialData() {
         try {
-            Utils.showLoading(true);
+            // show a non-blocking content-level placeholder instead of a global blocking spinner
+            // (do not call Utils.showLoading here to avoid the overlay spinner)
             
-            // Load clients and invoices in parallel
+            // Load clients and invoices in parallel without showing the global loader
             const [clientsResponse, invoicesResponse] = await Promise.all([
-                apiService.getClients(),
-                apiService.getInvoices()
+                apiService.getClients({}, { showLoading: false }),
+                apiService.getInvoices({}, { showLoading: false })
             ]);
 
             if (clientsResponse && clientsResponse.success) {
@@ -109,11 +110,8 @@ class InvoiceApp {
                 this.state.invoices = invoicesResponse.data || [];
             }
 
-            Utils.showLoading(false);
-            
         } catch (error) {
             console.error('Error loading initial data:', error);
-            Utils.showLoading(false);
         }
     }
 
@@ -158,7 +156,7 @@ class InvoiceApp {
 
     async refreshDashboardData() {
         const [statsResponse, recentClientsResponse, recentInvoicesResponse] = await Promise.all([
-            apiService.getDashboardStats({/*no data*/}, { showLoading: false }),
+            apiService.getDashboardStats({}, { showLoading: false }),
             apiService.getClients({ limit: 5 }, { showLoading: false }),
             apiService.getInvoices({ limit: 5, sort: 'newest' }, { showLoading: false })
         ]);
@@ -265,7 +263,7 @@ class InvoiceApp {
             // Update active nav link
             this.updateActiveNav(page);
             
-            // Show loading state
+            // Show non-blocking loading state (no overlay spinner)
             this.showLoadingState(page);
             
             // Load page content based on module
@@ -317,14 +315,15 @@ class InvoiceApp {
     }
 
     showLoadingState(page) {
-        document.getElementById('content').innerHTML = `
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+        // Small, non-blocking placeholder (no global overlay spinner)
+        const content = document.getElementById('content');
+        if (content) {
+            content.innerHTML = `
+                <div class="text-center py-3">
+                    <p class="mt-2 text-muted">Loading ${page.replace('-', ' ')}…</p>
                 </div>
-                <p class="mt-2">Loading ${page.replace('-', ' ')}...</p>
-            </div>
-        `;
+            `;
+        }
     }
 
     loadFallbackPage(page) {
