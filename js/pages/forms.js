@@ -25,6 +25,7 @@ class FormsPage {
                 const productOptions = this.products.map(p => {
                     const price = p.price != null ? p.price : '';
                     const tax = p.tax_rate != null ? p.tax_rate : 0;
+                    // NOTE: template may not have currency on product; fallback to USD
                     return `<option value="${p.product_id}" data-price="${price}" data-tax="${tax}" data-description="${(p.description || '').replace(/"/g, '&quot;')}">
                               ${p.name} — ${Utils.formatCurrency(price || 0, p.currency || 'USD')}
                             </option>`;
@@ -126,7 +127,7 @@ class FormsPage {
         }
     }
 
-    // Full implementation of submitClientForm (handles add & update)
+    // Full implementation of submitClientForm (handles add, update, AND schedule-edit flow)
     async submitClientForm(event) {
         event.preventDefault();
         
@@ -161,7 +162,119 @@ class FormsPage {
             
             // Add default values
             clientData.status = clientData.status || 'ACTIVE';
-            
+
+            // Check if we are in an "editSchedule" handoff (user came from Billing -> Edit)
+            const editScheduleRaw = localStorage.getItem('editSchedule');
+            if (editScheduleRaw) {
+                // If editSchedule exists, prioritize saving schedule updates.
+                const schedule = JSON.parse(editScheduleRaw);
+
+                // Build updates object based on billing fields present on the client form
+                const updates = {};
+                // Only include fields that are set (to avoid overwriting unintended fields)
+                if (clientData.billing_frequency) updates.billing_frequency = clientData.billing_frequency;
+                if (clientData.billing_amount != null) updates.billing_amount = clientData.billing_amount;
+                if (clientData.billing_day != null) updates.billing_day = clientData.billing_day;
+                if (clientData.billing_cycle) updates.billing_cycle = clientData.billing_cycle;
+                if (clientData.tax_rate != null) updates.tax_rate = clientData.tax_rate;
+                if (clientData.reminder_days != null) updates.reminder_days_before = Array.isArray(clientData.reminder_days) ? clientData.reminder_days.join(',') : (clientData.reminder_days || '');
+                if (clientData.auto_renew != null) updates.auto_generate = !!clientData.auto_renew;
+                if (clientData.billing_amount != null) updates.billing_amount = clientData.billing_amount;
+                if (clientData.bill_description) updates.bill_description = clientData.bill_description;
+                if (clientData.quantity != null) updates.quantity = clientData.quantity;
+                if (clientData.status) updates.status = clientData.status;
+                updates.last_modified = new Date().toISOString();
+
+                // Determine if user also filled client basic info intending to create/update a client.
+                // If so, create/update client first and use that client_id in schedule update.
+                let resultingClientId = schedule.client_id; // default to original
+                const hasClientInfo = !!(clientData.company_name || clientData.email || clientData.client_id);
+
+                if (hasClientInfo) {
+                    // If client_id provided, update client
+                    if (clientData.client_id) {
+                        // call updateClient (partial)
+                        try {
+                            const updateResp = await apiService.updateClient(clientData);
+                            if (updateResp && updateResp.success) {
+                                resultingClientId = clientData.client_id;
+                            } else {
+                                // proceed but warn
+                                console.warn('updateClient failed while editing schedule:', updateResp);
+                            }
+                        } catch (e) {
+                            console.warn('updateClient call failed:', e);
+                        }
+                    } else {
+                        // Create a new client and use its id
+                        try {
+                            const addResp = await apiService.addClient({
+                                company_name: clientData.company_name,
+                                contact_person: clientData.contact_person,
+                                email: clientData.email,
+                                phone: clientData.phone,
+                                address: clientData.address,
+                                city: clientData.city,
+                                country: clientData.country,
+                                tax_number: clientData.tax_number,
+                                currency: clientData.currency,
+                                payment_terms: clientData.payment_terms || 30,
+                                status: clientData.status || 'ACTIVE',
+                                tags: clientData.tags || ''
+                            });
+                            if (addResp && addResp.success) {
+                                resultingClientId = addResp.data.clientId || addResp.data.client_id;
+                                Utils.showNotification('Client created; will update schedule with new client', 'success');
+                            } else {
+                                console.warn('addClient failed while editing schedule:', addResp);
+                            }
+                        } catch (e) {
+                            console.warn('addClient call failed:', e);
+                        }
+                    }
+                }
+
+                // Attach client_id to updates if it changed
+                if (resultingClientId) updates.client_id = resultingClientId;
+
+                // If a product was selected on the form, update schedule.items accordingly
+                if (clientData.product_id) {
+                    // Map to an items array expected by billing schedule (simple single-item)
+                    updates.items = JSON.stringify([{
+                        product_id: clientData.product_id,
+                        quantity: clientData.quantity || 1,
+                        unit_price: clientData.billing_amount || 0,
+                        tax_rate: clientData.tax_rate || 0,
+                        description: clientData.bill_description || ''
+                    }]);
+                }
+
+                // Call updateBillingSchedule via API wrapper; wrapper expects { id, updates }
+                try {
+                    const resp = await apiService.updateBillingSchedule({ id: schedule.schedule_id, updates });
+                    if (resp && resp.success) {
+                        Utils.showNotification('Billing schedule updated successfully', 'success');
+                        // cleanup handoff keys
+                        localStorage.removeItem('editSchedule');
+                        localStorage.removeItem('openTab');
+                        // redirect back to billing page
+                        this.app.loadPage('billing');
+                        return;
+                    } else {
+                        throw new Error((resp && resp.error) || 'Failed to update schedule');
+                    }
+                } catch (err) {
+                    console.error('Failed to update billing schedule:', err);
+                    Utils.showNotification('Failed to update billing schedule: ' + (err.message || err), 'danger');
+                    // do not return — allow normal client creation fallback if desired
+                    return;
+                } finally {
+                    Utils.showLoading(false);
+                }
+            } // end editSchedule flow
+
+            // If not editing a schedule, continue with normal client create/update flow
+
             // If editing (client_id present), call updateClient
             if (clientData.client_id) {
                 const response = await apiService.updateClient(clientData);
@@ -248,8 +361,8 @@ class FormsPage {
             }
             
         } catch (error) {
-            console.error('Error adding/updating client:', error);
-            Utils.showNotification('Error: ' + error.message, 'danger');
+            console.error('Error adding/updating client or schedule:', error);
+            Utils.showNotification('Error: ' + (error.message || String(error)), 'danger');
         } finally {
             Utils.showLoading(false);
         }
