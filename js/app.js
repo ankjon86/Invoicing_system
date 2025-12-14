@@ -126,7 +126,7 @@ class InvoiceApp {
 
     async backgroundRefresh() {
         try {
-            // Refresh data based on current page
+            // Refresh data based on current page (do not show global loader during background refresh)
             switch(this.currentPage) {
                 case 'dashboard':
                     await this.refreshDashboardData();
@@ -148,7 +148,7 @@ class InvoiceApp {
                     break;
             }
             
-            // Show refresh indicator
+            // Show refresh indicator (small, non-blocking)
             this.showRefreshIndicator();
             
         } catch (error) {
@@ -158,9 +158,9 @@ class InvoiceApp {
 
     async refreshDashboardData() {
         const [statsResponse, recentClientsResponse, recentInvoicesResponse] = await Promise.all([
-            apiService.getDashboardStats(),
-            apiService.getClients({ limit: 5 }),
-            apiService.getInvoices({ limit: 5, sort: 'newest' })
+            apiService.getDashboardStats({/*no data*/}, { showLoading: false }),
+            apiService.getClients({ limit: 5 }, { showLoading: false }),
+            apiService.getInvoices({ limit: 5, sort: 'newest' }, { showLoading: false })
         ]);
 
         if (statsResponse && statsResponse.success && this.dashboardPage) {
@@ -177,7 +177,7 @@ class InvoiceApp {
     }
 
     async refreshClientsData() {
-        const response = await apiService.getClients();
+        const response = await apiService.getClients({}, { showLoading: false });
         if (response && response.success && this.clientsPage) {
             this.clientsPage.clients = response.data || [];
             this.clientsPage.filteredClients = [...this.clientsPage.clients];
@@ -186,7 +186,7 @@ class InvoiceApp {
     }
 
     async refreshInvoicesData() {
-        const response = await apiService.getInvoices();
+        const response = await apiService.getInvoices({}, { showLoading: false });
         if (response && response.success && this.invoicesPage) {
             this.invoicesPage.invoices = response.data || [];
             // Re-render if on invoices page
@@ -202,9 +202,9 @@ class InvoiceApp {
 
     async refreshBillingData() {
         const [contractsResponse, schedulesResponse, upcomingResponse] = await Promise.all([
-            apiService.getContracts(),
-            apiService.getBillingSchedules(),
-            apiService.getUpcomingInvoices({ days: 30 })
+            apiService.getContracts({}, { showLoading: false }),
+            apiService.getBillingSchedules({}, { showLoading: false }),
+            apiService.getUpcomingInvoices(30, { showLoading: false })
         ]);
 
         if (this.billingPage) {
@@ -221,7 +221,7 @@ class InvoiceApp {
     }
 
     async refreshReceiptsData() {
-        const response = await apiService.getReceipts();
+        const response = await apiService.getReceipts({}, { showLoading: false });
         if (response && response.success && this.receiptsPage) {
             this.receiptsPage.receipts = response.data || [];
             if (this.currentPage === 'receipts') {
@@ -235,7 +235,7 @@ class InvoiceApp {
     }
 
     async refreshProductsData() {
-        const response = await apiService.getProducts();
+        const response = await apiService.getProducts({ showLoading: false });
         if (response && response.success && this.productsPage) {
             this.productsPage.products = response.data || [];
             if (this.currentPage === 'products') {
@@ -329,6 +329,17 @@ class InvoiceApp {
 
     loadFallbackPage(page) {
         switch(page) {
+            case 'products':
+                return `
+                    <div class="container-fluid">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2>Products</h2>
+                        </div>
+                        <div class="alert alert-info">
+                            Products page coming soon!
+                        </div>
+                    </div>
+                `;
             case 'reports':
                 return `
                     <div class="container-fluid">
