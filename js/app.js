@@ -86,6 +86,9 @@ class InvoiceApp {
         if (window.ReceiptsPage) {
             this.receiptsPage = new ReceiptsPage(this);
         }
+        if (window.ProductsPage) {
+            this.productsPage = new ProductsPage(this);
+        }
     }
 
     async loadInitialData() {
@@ -139,6 +142,9 @@ class InvoiceApp {
                     break;
                 case 'receipts':
                     await this.refreshReceiptsData();
+                    break;
+                case 'products':
+                    await this.refreshProductsData();
                     break;
             }
             
@@ -228,6 +234,20 @@ class InvoiceApp {
         }
     }
 
+    async refreshProductsData() {
+        const response = await apiService.getProducts();
+        if (response && response.success && this.productsPage) {
+            this.productsPage.products = response.data || [];
+            if (this.currentPage === 'products') {
+                const content = document.getElementById('content');
+                if (content) {
+                    content.innerHTML = await this.productsPage.render();
+                    this.productsPage.initialize();
+                }
+            }
+        }
+    }
+
     showRefreshIndicator() {
         const indicator = document.getElementById('refreshIndicator');
         if (indicator) {
@@ -259,6 +279,8 @@ class InvoiceApp {
                 html = await this.invoicesPage.render();
             } else if (page === 'billing' && this.billingPage) {
                 html = await this.billingPage.render();
+            } else if (page === 'products' && this.productsPage) {
+                html = await this.productsPage.render();
             } else if ((page === 'client-form' || page === 'invoice-form' || page === 'receipt-form') && this.formsPage) {
                 html = await this.formsPage.render(page);
             } else if (page === 'receipts' && this.receiptsPage) {
@@ -307,17 +329,6 @@ class InvoiceApp {
 
     loadFallbackPage(page) {
         switch(page) {
-            case 'products':
-                return `
-                    <div class="container-fluid">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h2>Products</h2>
-                        </div>
-                        <div class="alert alert-info">
-                            Products page coming soon!
-                        </div>
-                    </div>
-                `;
             case 'reports':
                 return `
                     <div class="container-fluid">
@@ -361,6 +372,8 @@ class InvoiceApp {
                 this.invoicesPage.initialize();
             } else if (page === 'billing' && this.billingPage && this.billingPage.initialize) {
                 this.billingPage.initialize();
+            } else if (page === 'products' && this.productsPage && this.productsPage.initialize) {
+                this.productsPage.initialize();
             } else if ((page === 'client-form' || page === 'invoice-form' || page === 'receipt-form') && this.formsPage && this.formsPage.initialize) {
                 this.formsPage.initialize();
             } else if (page === 'receipts' && this.receiptsPage && this.receiptsPage.initialize) {
