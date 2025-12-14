@@ -105,6 +105,11 @@ class ApiService {
     return this.request('send_invoice', { invoice_id: invoiceId });
   }
 
+  // New: update invoice (header + items)
+  async updateInvoice(invoiceData) {
+    return this.request('update_invoice', invoiceData);
+  }
+
   // Billing APIs
   async addContract(contractData) {
     return this.request('add_contract', contractData);
@@ -171,6 +176,10 @@ class ApiService {
 
   async deleteReceipt(receiptId) {
     return this.request('delete_receipt', { id: receiptId });
+  }
+
+  async updateReceipt(receiptData) {
+    return this.request('update_receipt', receiptData);
   }
 
   // Test connection
