@@ -7,9 +7,11 @@ class ApiService {
   }
 
   // Generic request method (JSONP)
-  async request(action, data = {}) {
+  // options: { showLoading: true/false }
+  async request(action, data = {}, options = {}) {
+    const showLoading = options.showLoading !== false;
     try {
-      if (window.Utils) window.Utils.showLoading(true);
+      if (showLoading && window.Utils) window.Utils.showLoading(true);
 
       return new Promise((resolve, reject) => {
         const callbackName = 'callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -25,7 +27,7 @@ class ApiService {
           if (script.parentNode) document.head.removeChild(script);
           delete window[callbackName];
           
-          if (window.Utils) window.Utils.showLoading(false);
+          if (showLoading && window.Utils) window.Utils.showLoading(false);
           
           if (response && response.success) {
             const cacheKey = `${action}_${JSON.stringify(data)}`;
@@ -40,7 +42,7 @@ class ApiService {
         script.onerror = () => {
           if (script.parentNode) document.head.removeChild(script);
           delete window[callbackName];
-          if (window.Utils) window.Utils.showLoading(false);
+          if (showLoading && window.Utils) window.Utils.showLoading(false);
           reject(new Error('Network error'));
         };
         
@@ -51,150 +53,154 @@ class ApiService {
           if (script.parentNode) {
             document.head.removeChild(script);
             delete window[callbackName];
-            if (window.Utils) window.Utils.showLoading(false);
+            if (showLoading && window.Utils) window.Utils.showLoading(false);
             reject(new Error('Request timeout'));
           }
         }, 30000);
       });
       
     } catch (error) {
-      if (window.Utils) window.Utils.showLoading(false);
+      if (showLoading && window.Utils) window.Utils.showLoading(false);
       throw error;
     }
   }
 
   // Client APIs
-  async addClient(clientData) {
-    return this.request('add_client', clientData);
+  async addClient(clientData, options = {}) {
+    return this.request('add_client', clientData, options);
   }
 
-  async getClients(filters = {}) {
-    return this.request('get_clients', filters);
+  async getClients(filters = {}, options = {}) {
+    return this.request('get_clients', filters, options);
   }
 
-  async getClient(clientId) {
-    return this.request('get_client', { id: clientId });
+  async getClient(clientId, options = {}) {
+    return this.request('get_client', { id: clientId }, options);
   }
 
-  async updateClient(clientData) {
-    return this.request('update_client', clientData);
+  async updateClient(clientData, options = {}) {
+    return this.request('update_client', clientData, options);
   }
 
-  async deleteClient(clientId) {
-    return this.request('delete_client', { id: clientId });
+  async deleteClient(clientId, options = {}) {
+    return this.request('delete_client', { id: clientId }, options);
   }
 
   // Invoice APIs
-  async createInvoice(invoiceData) {
-    return this.request('create_invoice', invoiceData);
+  async createInvoice(invoiceData, options = {}) {
+    return this.request('create_invoice', invoiceData, options);
   }
 
-  async getInvoices(filters = {}) {
-    return this.request('get_invoices', filters);
+  async getInvoices(filters = {}, options = {}) {
+    return this.request('get_invoices', filters, options);
   }
 
-  async getInvoice(invoiceId) {
-    return this.request('get_invoice', { id: invoiceId });
+  async getInvoice(invoiceId, options = {}) {
+    return this.request('get_invoice', { id: invoiceId }, options);
   }
 
-  async updateInvoiceStatus(data) {
-    return this.request('update_invoice_status', data);
+  async updateInvoiceStatus(data, options = {}) {
+    return this.request('update_invoice_status', data, options);
   }
 
-  async sendInvoice(invoiceId) {
-    return this.request('send_invoice', { invoice_id: invoiceId });
+  async sendInvoice(invoiceId, options = {}) {
+    return this.request('send_invoice', { invoice_id: invoiceId }, options);
   }
 
   // New: update invoice (header + items)
-  async updateInvoice(invoiceData) {
-    return this.request('update_invoice', invoiceData);
+  async updateInvoice(invoiceData, options = {}) {
+    return this.request('update_invoice', invoiceData, options);
   }
 
   // Billing APIs
-  async addContract(contractData) {
-    return this.request('add_contract', contractData);
+  async addContract(contractData, options = {}) {
+    return this.request('add_contract', contractData, options);
   }
 
-  async getContracts(filters = {}) {
-    return this.request('get_contracts', filters);
+  async getContracts(filters = {}, options = {}) {
+    return this.request('get_contracts', filters, options);
   }
 
-  async addBillingSchedule(scheduleData) {
-    return this.request('add_billing_schedule', scheduleData);
+  async getContract(contractId, options = {}) {
+    return this.request('get_contract', { id: contractId }, options);
   }
 
-  async getBillingSchedules(filters = {}) {
-    return this.request('get_billing_schedules', filters);
+  async addBillingSchedule(scheduleData, options = {}) {
+    return this.request('add_billing_schedule', scheduleData, options);
   }
 
-  async updateBillingSchedule(data) {
-    return this.request('update_billing_schedule', data);
+  async getBillingSchedules(filters = {}, options = {}) {
+    return this.request('get_billing_schedules', filters, options);
   }
 
-  async pauseBillingSchedule(scheduleId) {
-    return this.request('pause_billing_schedule', { id: scheduleId });
+  async updateBillingSchedule(data, options = {}) {
+    return this.request('update_billing_schedule', data, options);
   }
 
-  async resumeBillingSchedule(scheduleId) {
-    return this.request('resume_billing_schedule', { id: scheduleId });
+  async pauseBillingSchedule(scheduleId, options = {}) {
+    return this.request('pause_billing_schedule', { id: scheduleId }, options);
   }
 
-  async getUpcomingInvoices(days = 30) {
-    return this.request('get_upcoming_invoices', { days });
+  async resumeBillingSchedule(scheduleId, options = {}) {
+    return this.request('resume_billing_schedule', { id: scheduleId }, options);
+  }
+
+  async getUpcomingInvoices(days = 30, options = {}) {
+    return this.request('get_upcoming_invoices', { days }, options);
   }
 
   // Product APIs
-  async addProduct(productData) {
-    return this.request('add_product', productData);
+  async addProduct(productData, options = {}) {
+    return this.request('add_product', productData, options);
   }
 
-  async getProducts() {
-    return this.request('get_products', {});
+  async getProducts(options = {}) {
+    return this.request('get_products', {}, options);
   }
 
   // New product endpoints
-  async updateProduct(productData) {
-    return this.request('update_product', productData);
+  async updateProduct(productData, options = {}) {
+    return this.request('update_product', productData, options);
   }
 
-  async deleteProduct(productId) {
-    return this.request('delete_product', { id: productId });
+  async deleteProduct(productId, options = {}) {
+    return this.request('delete_product', { id: productId }, options);
   }
 
   // System APIs
-  async initializeSystem() {
-    return this.request('initialize_system', {});
+  async initializeSystem(options = {}) {
+    return this.request('initialize_system', {}, options);
   }
 
-  async getDashboardStats() {
-    return this.request('get_stats', {});
+  async getDashboardStats(options = {}) {
+    return this.request('get_stats', {}, options);
   }
 
   // Receipts APIs (new)
-  async addReceipt(receiptData) {
-    return this.request('add_receipt', receiptData);
+  async addReceipt(receiptData, options = {}) {
+    return this.request('add_receipt', receiptData, options);
   }
 
-  async getReceipts(filters = {}) {
-    return this.request('get_receipts', filters);
+  async getReceipts(filters = {}, options = {}) {
+    return this.request('get_receipts', filters, options);
   }
 
-  async getReceipt(receiptId) {
-    return this.request('get_receipt', { id: receiptId });
+  async getReceipt(receiptId, options = {}) {
+    return this.request('get_receipt', { id: receiptId }, options);
   }
 
-  async deleteReceipt(receiptId) {
-    return this.request('delete_receipt', { id: receiptId });
+  async deleteReceipt(receiptId, options = {}) {
+    return this.request('delete_receipt', { id: receiptId }, options);
   }
 
-  async updateReceipt(receiptData) {
-    return this.request('update_receipt', receiptData);
+  async updateReceipt(receiptData, options = {}) {
+    return this.request('update_receipt', receiptData, options);
   }
 
   // Test connection
-  async testConnection() {
+  async testConnection(options = {}) {
     try {
-      const response = await this.request('test', {});
+      const response = await this.request('test', {}, options);
       return {
         connected: response.success,
         message: response.success ? 'Connected to server' : 'Connection failed'
