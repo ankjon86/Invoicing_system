@@ -60,24 +60,25 @@ class FormsPage {
                                     </div>
                                     <div class="card-body">
                                         <form id="receiptForm" onsubmit="return formsPage.submitReceiptForm(event)">
+                                            <input type="hidden" name="receipt_id" id="receipt_id_hidden" value="">
                                             <div class="mb-3">
                                                 <label class="form-label">Select Client</label>
-                                                <select class="form-select" name="client_id" required>
+                                                <select class="form-select" name="client_id" required id="receipt-client-select">
                                                     <option value="">Choose a client...</option>
                                                     ${clientOptions}
                                                 </select>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Amount</label>
-                                                <input type="number" class="form-control" name="amount" step="0.01" required>
+                                                <input type="number" class="form-control" name="amount" step="0.01" required id="receipt-amount">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Payment Date</label>
-                                                <input type="date" class="form-control" name="payment_date" value="${new Date().toISOString().split('T')[0]}" required>
+                                                <input type="date" class="form-control" name="payment_date" value="${new Date().toISOString().split('T')[0]}" required id="receipt-payment-date">
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Payment Method</label>
-                                                <select class="form-select" name="payment_method">
+                                                <select class="form-select" name="payment_method" id="receipt-method">
                                                     <option value="CASH">Cash</option>
                                                     <option value="BANK_TRANSFER">Bank Transfer</option>
                                                     <option value="MOBILE_MONEY">Mobile Money</option>
@@ -86,7 +87,7 @@ class FormsPage {
                                             </div>
                                             <div class="mb-3">
                                                 <label class="form-label">Notes</label>
-                                                <textarea class="form-control" name="notes" rows="2"></textarea>
+                                                <textarea class="form-control" name="notes" rows="2" id="receipt-notes"></textarea>
                                             </div>
                                             <div class="d-flex justify-content-between">
                                                 <button type="button" class="btn btn-secondary" onclick="app.loadPage('receipts')">Cancel</button>
@@ -109,7 +110,7 @@ class FormsPage {
         }
     }
 
-    // Full implementation of submitClientForm (copied/adapted from original)
+    // Full implementation of submitClientForm (handles add & update)
     async submitClientForm(event) {
         event.preventDefault();
         
@@ -130,7 +131,7 @@ class FormsPage {
                 } else if (['billing_amount', 'payment_terms', 'tax_rate', 'quantity', 'billing_day'].indexOf(key) >= 0) {
                     clientData[key] = parseFloat(value) || 0;
                 } else if (key === 'tax_inclusive' || key === 'auto_renew') {
-                    clientData[key] = value === 'true';
+                    clientData[key] = (value === 'true' || value === true);
                 } else if (key === 'reminder_days' && value) {
                     clientData[key] = value.split(',').map(function(day) { 
                         return parseInt(day.trim()); 
@@ -143,9 +144,22 @@ class FormsPage {
             }
             
             // Add default values
-            clientData.status = 'ACTIVE';
+            clientData.status = clientData.status || 'ACTIVE';
             
-            // Create billing schedule data for invoice generation
+            // If editing (client_id present), call updateClient
+            if (clientData.client_id) {
+                const response = await apiService.updateClient(clientData);
+                if (response.success) {
+                    Utils.showNotification('Client updated successfully!', 'success');
+                    localStorage.removeItem('editClient');
+                    this.app.loadPage('clients');
+                    return;
+                } else {
+                    throw new Error(response.error || 'Failed to update client');
+                }
+            }
+
+            // Create billing schedule data for invoice generation (for new client)
             const billingSchedule = {
                 billing_frequency: clientData.billing_frequency,
                 billing_amount: clientData.billing_amount,
@@ -217,14 +231,14 @@ class FormsPage {
             }
             
         } catch (error) {
-            console.error('Error adding client:', error);
+            console.error('Error adding/updating client:', error);
             Utils.showNotification('Error: ' + error.message, 'danger');
         } finally {
             Utils.showLoading(false);
         }
     }
 
-    // Full implementation of submitInvoiceForm (copied/adapted from original)
+    // Full implementation of submitInvoiceForm (handles create & update)
     async submitInvoiceForm(event) {
         event.preventDefault();
         
@@ -242,6 +256,9 @@ class FormsPage {
                 notes: formData.get('notes'),
                 items: []
             };
+            
+            const invoiceIdHidden = form.querySelector('input[name="invoice_id"]') ? form.querySelector('input[name="invoice_id"]').value : null;
+            if (invoiceIdHidden) invoiceData.invoice_id = invoiceIdHidden;
             
             // Gather items
             const items = document.querySelectorAll('.invoice-item');
@@ -265,7 +282,20 @@ class FormsPage {
                 throw new Error('Please add at least one item to the invoice');
             }
             
-            // Call API
+            // If editing existing invoice -> call updateInvoice
+            if (invoiceData.invoice_id) {
+                const response = await apiService.updateInvoice(invoiceData);
+                if (response.success) {
+                    Utils.showNotification('Invoice updated successfully!', 'success');
+                    localStorage.removeItem('editInvoice');
+                    this.app.loadPage('invoices');
+                    return;
+                } else {
+                    throw new Error(response.error || 'Failed to update invoice');
+                }
+            }
+
+            // Call API to create new invoice
             const response = await apiService.createInvoice(invoiceData);
             
             if (response.success) {
@@ -276,7 +306,7 @@ class FormsPage {
             }
             
         } catch (error) {
-            console.error('Error creating invoice:', error);
+            console.error('Error creating/updating invoice:', error);
             Utils.showNotification('Error: ' + error.message, 'danger');
         } finally {
             Utils.showLoading(false);
@@ -353,13 +383,23 @@ class FormsPage {
                 notes: formData.get('notes') || ''
             };
 
+            const receiptId = formData.get('receipt_id') || form.querySelector('#receipt_id_hidden')?.value;
+            if (receiptId) receiptData.receipt_id = receiptId;
+
             // Basic validation
             if (!receiptData.client_id) throw new Error('Client is required');
             if (!receiptData.amount || receiptData.amount <= 0) throw new Error('Amount must be greater than 0');
 
-            const response = await apiService.addReceipt(receiptData);
+            let response;
+            if (receiptData.receipt_id) {
+                response = await apiService.updateReceipt(receiptData);
+            } else {
+                response = await apiService.addReceipt(receiptData);
+            }
+
             if (response.success) {
                 Utils.showNotification('Receipt saved successfully!', 'success');
+                localStorage.removeItem('editReceipt');
                 this.app.loadPage('receipts');
             } else {
                 throw new Error(response.error || 'Failed to save receipt');
@@ -405,6 +445,141 @@ class FormsPage {
                     });
                 });
             }, 100);
+        }
+
+        // Prefill editClient if present
+        try {
+            if (this.currentForm === 'client-form') {
+                const edit = localStorage.getItem('editClient');
+                if (edit) {
+                    const client = JSON.parse(edit);
+                    const form = document.getElementById('clientForm');
+                    if (form) {
+                        // hidden input for client_id
+                        let input = form.querySelector('input[name="client_id"]');
+                        if (!input) {
+                            input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'client_id';
+                            form.prepend(input);
+                        }
+                        input.value = client.client_id || '';
+
+                        // populate fields by name
+                        Object.keys(client).forEach(k => {
+                            try {
+                                const el = form.querySelector(`[name="${k}"]`);
+                                if (!el) return;
+                                if (el.tagName === 'SELECT') {
+                                    el.value = client[k] || '';
+                                } else if (el.type === 'checkbox' || el.type === 'radio') {
+                                    el.checked = !!client[k];
+                                } else {
+                                    el.value = Array.isArray(client[k]) ? client[k].join(',') : (client[k] != null ? client[k] : '');
+                                }
+                            } catch (e) {}
+                        });
+                    }
+                    // remove edit flag after use
+                    localStorage.removeItem('editClient');
+                }
+            }
+
+            // Prefill invoice form if editing
+            if (this.currentForm === 'invoice-form') {
+                const editInv = localStorage.getItem('editInvoice');
+                if (editInv) {
+                    const invoice = JSON.parse(editInv);
+                    // wait a tick to ensure DOM exists
+                    setTimeout(() => {
+                        const form = document.getElementById('invoiceForm');
+                        if (!form) return;
+                        // add hidden invoice_id
+                        let hid = form.querySelector('input[name="invoice_id"]');
+                        if (!hid) {
+                            hid = document.createElement('input');
+                            hid.type = 'hidden';
+                            hid.name = 'invoice_id';
+                            form.appendChild(hid);
+                        }
+                        hid.value = invoice.invoice_id || '';
+
+                        // set basic fields
+                        const clientSelect = document.getElementById('invoice-client-select');
+                        if (clientSelect) clientSelect.value = invoice.client_id || '';
+
+                        form.querySelector('input[name="date"]').value = (invoice.date ? invoice.date.toString().split('T')[0] : '') || '';
+                        form.querySelector('input[name="due_date"]').value = (invoice.due_date ? invoice.due_date.toString().split('T')[0] : '') || '';
+                        form.querySelector('select[name="currency"]').value = invoice.currency || 'GHS';
+                        form.querySelector('textarea[name="notes"]').value = invoice.notes || '';
+
+                        // populate items
+                        const itemsContainer = document.getElementById('invoiceItems');
+                        if (itemsContainer) {
+                            itemsContainer.innerHTML = '';
+                            const items = invoice.items || [];
+                            if (items.length === 0) {
+                                this.addInvoiceItem();
+                            } else {
+                                items.forEach(it => {
+                                    const newItem = document.createElement('div');
+                                    newItem.className = 'invoice-item row g-3 mb-3';
+                                    newItem.innerHTML = `
+                                        <div class="col-md-5">
+                                            <input type="text" class="form-control item-description" placeholder="Item description" required oninput="formsPage.calculateInvoiceTotal()" value="${it.description || ''}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="number" class="form-control item-quantity" value="${it.quantity || 1}" min="1" step="1" oninput="formsPage.calculateInvoiceTotal()">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="number" class="form-control item-unit-price" placeholder="0.00" step="0.01" required oninput="formsPage.calculateInvoiceTotal()" value="${it.unit_price || 0}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <input type="number" class="form-control item-tax-rate" value="${it.tax_rate || 0}" step="0.01" oninput="formsPage.calculateInvoiceTotal()">
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-danger w-100" onclick="this.closest('.invoice-item').remove(); formsPage.calculateInvoiceTotal()">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    `;
+                                    itemsContainer.appendChild(newItem);
+                                });
+                            }
+                            this.calculateInvoiceTotal();
+                        }
+                    }, 150);
+                    localStorage.removeItem('editInvoice');
+                }
+            }
+
+            // Prefill receipt form if editing
+            if (this.currentForm === 'receipt-form') {
+                const editR = localStorage.getItem('editReceipt');
+                if (editR) {
+                    const receipt = JSON.parse(editR);
+                    setTimeout(() => {
+                        const form = document.getElementById('receiptForm');
+                        if (!form) return;
+                        let hid = form.querySelector('input[name="receipt_id"]') || document.getElementById('receipt_id_hidden');
+                        if (hid) hid.value = receipt.receipt_id || receipt.receiptId || '';
+                        const sel = document.getElementById('receipt-client-select');
+                        if (sel) sel.value = receipt.client_id || '';
+                        const amt = document.getElementById('receipt-amount');
+                        if (amt) amt.value = receipt.amount || '';
+                        const pd = document.getElementById('receipt-payment-date');
+                        if (pd) pd.value = receipt.payment_date ? receipt.payment_date.toString().split('T')[0] : '';
+                        const pm = document.getElementById('receipt-method');
+                        if (pm) pm.value = receipt.payment_method || '';
+                        const notes = document.getElementById('receipt-notes');
+                        if (notes) notes.value = receipt.notes || '';
+                    }, 100);
+                    localStorage.removeItem('editReceipt');
+                }
+            }
+
+        } catch (e) {
+            console.error('Forms initialize error:', e);
         }
         
         console.log('Forms page initialized');
