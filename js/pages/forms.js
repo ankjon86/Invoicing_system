@@ -1,5 +1,5 @@
-// Forms Page Module (for Client, Invoice, Receipt forms)
-// Updated: client-form now loads product options and supports prefill when editing a schedule
+// Forms Page Module (complete)
+// Handles Client, Invoice, Receipt forms, product add modal, and schedule-edit handoff
 class FormsPage {
     constructor(app) {
         this.app = app;
@@ -25,9 +25,8 @@ class FormsPage {
                 const productOptions = this.products.map(p => {
                     const price = p.price != null ? p.price : '';
                     const tax = p.tax_rate != null ? p.tax_rate : 0;
-                    // NOTE: template may not have currency on product; fallback to USD
                     return `<option value="${p.product_id}" data-price="${price}" data-tax="${tax}" data-description="${(p.description || '').replace(/"/g, '&quot;')}">
-                              ${p.name} — ${Utils.formatCurrency(price || 0, p.currency || 'USD')}
+                              ${p.name} — ${Utils.formatCurrency(price || 0)}
                             </option>`;
                 }).join('\n');
 
@@ -58,9 +57,8 @@ class FormsPage {
                 });
             }
 
-            // Receipt form (simple inline template)
+            // Receipt form
             if (formType === 'receipt-form') {
-                // Build a basic receipt form using client list
                 const clientsResponse = await apiService.getClients();
                 this.clients = clientsResponse.success ? clientsResponse.data : [];
                 const clientOptions = this.clients.map(client => 
@@ -127,7 +125,99 @@ class FormsPage {
         }
     }
 
-    // Full implementation of submitClientForm (handles add, update, AND schedule-edit flow)
+    // --- Product modal methods ---
+
+    async openAddProductModal() {
+        try {
+            const tpl = await Utils.loadTemplate('templates/forms/product-form.html');
+            const container = document.createElement('div');
+            container.innerHTML = `
+                <div class="modal fade" id="addProductModal" tabindex="-1">
+                  <div class="modal-dialog modal-md modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title">Add Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body p-0">
+                        ${tpl}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            `;
+            document.body.appendChild(container);
+            const modalEl = document.getElementById('addProductModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+
+            // wire form submit
+            const form = modalEl.querySelector('#productForm');
+            form.addEventListener('submit', (e) => this.submitProductForm(e, modal, container), { once: true });
+
+            modalEl.addEventListener('hidden.bs.modal', () => {
+                container.remove();
+            });
+
+        } catch (err) {
+            console.error('openAddProductModal error:', err);
+            Utils.showNotification('Failed to open add product form', 'danger');
+        }
+    }
+
+    async submitProductForm(event, modal, container) {
+        event.preventDefault();
+        try {
+            Utils.showLoading(true);
+            const form = event.target;
+            const fd = new FormData(form);
+            const productData = {
+                name: fd.get('name'),
+                description: fd.get('description') || '',
+                price: parseFloat(fd.get('price')) || 0,
+                tax_rate: parseFloat(fd.get('tax_rate')) || 0,
+                category: fd.get('category') || '',
+                unit: fd.get('unit') || 'each'
+            };
+
+            if (!productData.name) throw new Error('Product name is required');
+
+            const resp = await apiService.addProduct(productData);
+            if (!resp || !resp.success) throw new Error((resp && resp.error) || 'Failed to add product');
+
+            const newProductId = resp.data ? (resp.data.productId || resp.data.product_id) : null;
+            const newProduct = Object.assign({ product_id: newProductId }, productData);
+            this.products = this.products || [];
+            this.products.push(newProduct);
+
+            // Update select in client form if present
+            const sel = document.getElementById('billing-product-select');
+            if (sel) {
+                const option = document.createElement('option');
+                option.value = newProduct.product_id;
+                option.textContent = `${newProduct.name} — ${Utils.formatCurrency(newProduct.price || 0)}`;
+                option.setAttribute('data-price', newProduct.price || 0);
+                option.setAttribute('data-tax', newProduct.tax_rate || 0);
+                option.setAttribute('data-description', newProduct.description || '');
+                sel.appendChild(option);
+                // select the newly created product
+                sel.value = newProduct.product_id;
+                sel.dispatchEvent(new Event('change'));
+            }
+
+            Utils.showNotification('Product added successfully', 'success');
+            modal.hide();
+
+        } catch (error) {
+            console.error('submitProductForm error:', error);
+            Utils.showNotification('Error adding product: ' + (error.message || error), 'danger');
+        } finally {
+            Utils.showLoading(false);
+        }
+    }
+
+    // --- Client form submit (handles normal add/update AND schedule edit handoff) ---
+
     async submitClientForm(event) {
         event.preventDefault();
         
@@ -138,40 +228,31 @@ class FormsPage {
             const formData = new FormData(form);
             const clientData = {};
             
-            // Convert FormData to object
             for (const pair of formData.entries()) {
                 const key = pair[0];
                 const value = pair[1];
                 
                 if (key === 'tags' && value) {
-                    clientData[key] = value.split(',').map(function(tag) { return tag.trim(); });
+                    clientData[key] = value.split(',').map(tag => tag.trim());
                 } else if (['billing_amount', 'payment_terms', 'tax_rate', 'quantity', 'billing_day'].indexOf(key) >= 0) {
                     clientData[key] = parseFloat(value) || 0;
                 } else if (key === 'tax_inclusive' || key === 'auto_renew') {
                     clientData[key] = (value === 'true' || value === true);
                 } else if (key === 'reminder_days' && value) {
-                    clientData[key] = value.split(',').map(function(day) { 
-                        return parseInt(day.trim()); 
-                    }).filter(function(day) { 
-                        return !isNaN(day); 
-                    });
+                    clientData[key] = value.split(',').map(day => parseInt(day.trim())).filter(n => !isNaN(n));
                 } else {
                     clientData[key] = value;
                 }
             }
             
-            // Add default values
             clientData.status = clientData.status || 'ACTIVE';
 
-            // Check if we are in an "editSchedule" handoff (user came from Billing -> Edit)
+            // If user came from editSchedule flow
             const editScheduleRaw = localStorage.getItem('editSchedule');
             if (editScheduleRaw) {
-                // If editSchedule exists, prioritize saving schedule updates.
                 const schedule = JSON.parse(editScheduleRaw);
 
-                // Build updates object based on billing fields present on the client form
                 const updates = {};
-                // Only include fields that are set (to avoid overwriting unintended fields)
                 if (clientData.billing_frequency) updates.billing_frequency = clientData.billing_frequency;
                 if (clientData.billing_amount != null) updates.billing_amount = clientData.billing_amount;
                 if (clientData.billing_day != null) updates.billing_day = clientData.billing_day;
@@ -179,34 +260,39 @@ class FormsPage {
                 if (clientData.tax_rate != null) updates.tax_rate = clientData.tax_rate;
                 if (clientData.reminder_days != null) updates.reminder_days_before = Array.isArray(clientData.reminder_days) ? clientData.reminder_days.join(',') : (clientData.reminder_days || '');
                 if (clientData.auto_renew != null) updates.auto_generate = !!clientData.auto_renew;
-                if (clientData.billing_amount != null) updates.billing_amount = clientData.billing_amount;
                 if (clientData.bill_description) updates.bill_description = clientData.bill_description;
                 if (clientData.quantity != null) updates.quantity = clientData.quantity;
                 if (clientData.status) updates.status = clientData.status;
                 updates.last_modified = new Date().toISOString();
 
-                // Determine if user also filled client basic info intending to create/update a client.
-                // If so, create/update client first and use that client_id in schedule update.
-                let resultingClientId = schedule.client_id; // default to original
+                // handle product -> schedule.items
+                if (clientData.product_id) {
+                    updates.items = JSON.stringify([{
+                        product_id: clientData.product_id,
+                        quantity: clientData.quantity || 1,
+                        unit_price: clientData.billing_amount || 0,
+                        tax_rate: clientData.tax_rate || 0,
+                        description: clientData.bill_description || ''
+                    }]);
+                }
+
+                // If user also filled/updated client basic info, ensure client exists/updated first
+                let resultingClientId = schedule.client_id;
                 const hasClientInfo = !!(clientData.company_name || clientData.email || clientData.client_id);
 
                 if (hasClientInfo) {
-                    // If client_id provided, update client
                     if (clientData.client_id) {
-                        // call updateClient (partial)
                         try {
                             const updateResp = await apiService.updateClient(clientData);
                             if (updateResp && updateResp.success) {
                                 resultingClientId = clientData.client_id;
                             } else {
-                                // proceed but warn
                                 console.warn('updateClient failed while editing schedule:', updateResp);
                             }
                         } catch (e) {
                             console.warn('updateClient call failed:', e);
                         }
                     } else {
-                        // Create a new client and use its id
                         try {
                             const addResp = await apiService.addClient({
                                 company_name: clientData.company_name,
@@ -234,30 +320,15 @@ class FormsPage {
                     }
                 }
 
-                // Attach client_id to updates if it changed
                 if (resultingClientId) updates.client_id = resultingClientId;
 
-                // If a product was selected on the form, update schedule.items accordingly
-                if (clientData.product_id) {
-                    // Map to an items array expected by billing schedule (simple single-item)
-                    updates.items = JSON.stringify([{
-                        product_id: clientData.product_id,
-                        quantity: clientData.quantity || 1,
-                        unit_price: clientData.billing_amount || 0,
-                        tax_rate: clientData.tax_rate || 0,
-                        description: clientData.bill_description || ''
-                    }]);
-                }
-
-                // Call updateBillingSchedule via API wrapper; wrapper expects { id, updates }
+                // Call updateBillingSchedule API (expects { id, updates })
                 try {
                     const resp = await apiService.updateBillingSchedule({ id: schedule.schedule_id, updates });
                     if (resp && resp.success) {
                         Utils.showNotification('Billing schedule updated successfully', 'success');
-                        // cleanup handoff keys
                         localStorage.removeItem('editSchedule');
                         localStorage.removeItem('openTab');
-                        // redirect back to billing page
                         this.app.loadPage('billing');
                         return;
                     } else {
@@ -266,16 +337,13 @@ class FormsPage {
                 } catch (err) {
                     console.error('Failed to update billing schedule:', err);
                     Utils.showNotification('Failed to update billing schedule: ' + (err.message || err), 'danger');
-                    // do not return — allow normal client creation fallback if desired
                     return;
                 } finally {
                     Utils.showLoading(false);
                 }
-            } // end editSchedule flow
+            }
 
-            // If not editing a schedule, continue with normal client create/update flow
-
-            // If editing (client_id present), call updateClient
+            // Normal client update/create flow
             if (clientData.client_id) {
                 const response = await apiService.updateClient(clientData);
                 if (response.success) {
@@ -288,7 +356,7 @@ class FormsPage {
                 }
             }
 
-            // Create billing schedule data for invoice generation (for new client)
+            // Create billing schedule object and create client then schedule
             const billingSchedule = {
                 billing_frequency: clientData.billing_frequency,
                 billing_amount: clientData.billing_amount,
@@ -306,25 +374,17 @@ class FormsPage {
                 auto_generate: true
             };
             
-            // Remove billing fields from main client data
             const billingFields = [
                 'billing_frequency', 'billing_amount', 'tax_rate', 'tax_inclusive',
                 'quantity', 'start_date', 'end_date', 'payment_terms', 
                 'bill_description', 'auto_renew', 'billing_day', 'reminder_days', 'product_id'
             ];
-            
-            billingFields.forEach(function(field) {
-                delete clientData[field];
-            });
-            
-            // Add billing schedule data
+            billingFields.forEach(field => delete clientData[field]);
             clientData.billing_schedule = billingSchedule;
             
-            // Call API to add client
             const response = await apiService.addClient(clientData);
             
             if (response.success) {
-                // If client added successfully, create billing schedule
                 try {
                     const scheduleResponse = await apiService.addBillingSchedule({
                         client_id: response.data.clientId || response.data.client_id,
@@ -368,80 +428,7 @@ class FormsPage {
         }
     }
 
-    // Full implementation of submitInvoiceForm (handles create & update)
-    async submitInvoiceForm(event) {
-        event.preventDefault();
-        
-        try {
-            Utils.showLoading(true);
-            
-            // Gather invoice data
-            const form = event.target;
-            const formData = new FormData(form);
-            const invoiceData = {
-                client_id: formData.get('client_id'),
-                date: formData.get('date'),
-                due_date: formData.get('due_date'),
-                currency: formData.get('currency') || 'GHS',
-                notes: formData.get('notes'),
-                items: []
-            };
-            
-            const invoiceIdHidden = form.querySelector('input[name="invoice_id"]') ? form.querySelector('input[name="invoice_id"]').value : null;
-            if (invoiceIdHidden) invoiceData.invoice_id = invoiceIdHidden;
-            
-            // Gather items
-            const items = document.querySelectorAll('.invoice-item');
-            items.forEach(function(item) {
-                const description = item.querySelector('.item-description').value;
-                const quantity = parseFloat(item.querySelector('.item-quantity').value) || 1;
-                const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
-                const taxRate = parseFloat(item.querySelector('.item-tax-rate').value) || 0;
-                
-                if (description && unitPrice > 0) {
-                    invoiceData.items.push({
-                        description: description,
-                        quantity: quantity,
-                        unit_price: unitPrice,
-                        tax_rate: taxRate
-                    });
-                }
-            });
-            
-            if (invoiceData.items.length === 0) {
-                throw new Error('Please add at least one item to the invoice');
-            }
-            
-            // If editing existing invoice -> call updateInvoice
-            if (invoiceData.invoice_id) {
-                const response = await apiService.updateInvoice(invoiceData);
-                if (response.success) {
-                    Utils.showNotification('Invoice updated successfully!', 'success');
-                    localStorage.removeItem('editInvoice');
-                    this.app.loadPage('invoices');
-                    return;
-                } else {
-                    throw new Error(response.error || 'Failed to update invoice');
-                }
-            }
-
-            // Call API to create new invoice
-            const response = await apiService.createInvoice(invoiceData);
-            
-            if (response.success) {
-                Utils.showNotification('Invoice created successfully!', 'success');
-                this.app.loadPage('invoices');
-            } else {
-                throw new Error(response.error || 'Failed to create invoice');
-            }
-            
-        } catch (error) {
-            console.error('Error creating/updating invoice:', error);
-            Utils.showNotification('Error: ' + error.message, 'danger');
-        } finally {
-            Utils.showLoading(false);
-        }
-    }
+    // --- Invoice handling ---
 
     addInvoiceItem() {
         const itemsContainer = document.getElementById('invoiceItems');
@@ -499,6 +486,78 @@ class FormsPage {
         if (totalEl) totalEl.textContent = Utils.formatCurrency(total, 'GHS');
     }
 
+    async submitInvoiceForm(event) {
+        event.preventDefault();
+        
+        try {
+            Utils.showLoading(true);
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const invoiceData = {
+                client_id: formData.get('client_id'),
+                date: formData.get('date'),
+                due_date: formData.get('due_date'),
+                currency: formData.get('currency') || 'GHS',
+                notes: formData.get('notes'),
+                items: []
+            };
+            
+            const invoiceIdHidden = form.querySelector('input[name="invoice_id"]') ? form.querySelector('input[name="invoice_id"]').value : null;
+            if (invoiceIdHidden) invoiceData.invoice_id = invoiceIdHidden;
+            
+            const items = document.querySelectorAll('.invoice-item');
+            items.forEach(function(item) {
+                const description = item.querySelector('.item-description').value;
+                const quantity = parseFloat(item.querySelector('.item-quantity').value) || 1;
+                const unitPrice = parseFloat(item.querySelector('.item-unit-price').value) || 0;
+                const taxRate = parseFloat(item.querySelector('.item-tax-rate').value) || 0;
+                
+                if (description && unitPrice > 0) {
+                    invoiceData.items.push({
+                        description: description,
+                        quantity: quantity,
+                        unit_price: unitPrice,
+                        tax_rate: taxRate
+                    });
+                }
+            });
+            
+            if (invoiceData.items.length === 0) {
+                throw new Error('Please add at least one item to the invoice');
+            }
+            
+            if (invoiceData.invoice_id) {
+                const response = await apiService.updateInvoice(invoiceData);
+                if (response.success) {
+                    Utils.showNotification('Invoice updated successfully!', 'success');
+                    localStorage.removeItem('editInvoice');
+                    this.app.loadPage('invoices');
+                    return;
+                } else {
+                    throw new Error(response.error || 'Failed to update invoice');
+                }
+            }
+
+            const response = await apiService.createInvoice(invoiceData);
+            
+            if (response.success) {
+                Utils.showNotification('Invoice created successfully!', 'success');
+                this.app.loadPage('invoices');
+            } else {
+                throw new Error(response.error || 'Failed to create invoice');
+            }
+            
+        } catch (error) {
+            console.error('Error creating/updating invoice:', error);
+            Utils.showNotification('Error: ' + (error.message || String(error)), 'danger');
+        } finally {
+            Utils.showLoading(false);
+        }
+    }
+
+    // --- Receipts ---
+
     async submitReceiptForm(event) {
         event.preventDefault();
         try {
@@ -516,7 +575,6 @@ class FormsPage {
             const receiptId = formData.get('receipt_id') || form.querySelector('#receipt_id_hidden')?.value;
             if (receiptId) receiptData.receipt_id = receiptId;
 
-            // Basic validation
             if (!receiptData.client_id) throw new Error('Client is required');
             if (!receiptData.amount || receiptData.amount <= 0) throw new Error('Amount must be greater than 0');
 
@@ -537,7 +595,7 @@ class FormsPage {
 
         } catch (error) {
             console.error('Error saving receipt:', error);
-            Utils.showNotification('Error: ' + error.message, 'danger');
+            Utils.showNotification('Error: ' + (error.message || String(error)), 'danger');
         } finally {
             Utils.showLoading(false);
         }
@@ -559,47 +617,57 @@ class FormsPage {
         `;
     }
 
+    // --- Initialization wiring (tabs, product select, prefill edit flows) ---
+
     initialize() {
-        // Store reference to this instance for event handlers
         window.formsPage = this;
         
-        // Initialize tabs for client form
-        if (this.currentForm === 'client-form') {
-            setTimeout(() => {
-                const triggerTabList = document.querySelectorAll('#clientFormTabs button');
-                triggerTabList.forEach(function(triggerEl) {
-                    triggerEl.addEventListener('click', function(event) {
-                        event.preventDefault();
-                        const tab = new bootstrap.Tab(this);
-                        tab.show();
-                    });
+        // small delay to ensure form DOM present
+        setTimeout(() => {
+            // Tab wiring
+            const triggerTabList = document.querySelectorAll('#clientFormTabs button');
+            triggerTabList.forEach(triggerEl => {
+                triggerEl.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const tab = new bootstrap.Tab(this);
+                    tab.show();
                 });
+            });
 
-                // If products were loaded during render, wire product select change to prefill amount/tax/description
-                const productSelect = document.getElementById('billing-product-select');
-                if (productSelect) {
-                    productSelect.addEventListener('change', (ev) => {
-                        const pid = ev.target.value;
-                        const selected = this.products ? this.products.find(p => p.product_id === pid) : null;
-                        if (selected) {
-                            const price = selected.price != null ? selected.price : 0;
-                            const tax = selected.tax_rate != null ? selected.tax_rate : 0;
-                            const desc = selected.description || '';
-                            const amountEl = document.getElementById('billing-amount');
-                            const taxEl = document.getElementById('billing-tax-rate');
-                            const descEl = document.getElementById('billing-description');
-                            if (amountEl) amountEl.value = price;
-                            if (taxEl) taxEl.value = tax;
-                            if (descEl && !descEl.value) descEl.value = desc;
-                        }
-                    });
-                }
+            // Add Product button wiring (if present)
+            const addProductBtn = document.getElementById('add-product-btn');
+            if (addProductBtn) {
+                addProductBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.openAddProductModal();
+                });
+            }
 
-                // If an editSchedule has been set, prefill the billing tab fields and show billing tab
+            // Product select change wiring
+            const productSelect = document.getElementById('billing-product-select');
+            if (productSelect) {
+                productSelect.addEventListener('change', (ev) => {
+                    const pid = ev.target.value;
+                    const selected = this.products ? this.products.find(p => p.product_id === pid) : null;
+                    if (selected) {
+                        const price = selected.price != null ? selected.price : 0;
+                        const tax = selected.tax_rate != null ? selected.tax_rate : 0;
+                        const desc = selected.description || '';
+                        const amountEl = document.getElementById('billing-amount');
+                        const taxEl = document.getElementById('billing-tax-rate');
+                        const descEl = document.getElementById('billing-description');
+                        if (amountEl) amountEl.value = price;
+                        if (taxEl) taxEl.value = tax;
+                        if (descEl && !descEl.value) descEl.value = desc;
+                    }
+                });
+            }
+
+            // Prefill flows: editSchedule, editClient, editInvoice, editReceipt
+            try {
                 const editScheduleRaw = localStorage.getItem('editSchedule');
                 const openTab = localStorage.getItem('openTab');
                 if (openTab === 'billing') {
-                    // show billing tab
                     const billingTabTrigger = Array.from(document.querySelectorAll('#clientFormTabs button')).find(b => b.getAttribute('data-bs-target') === '#billingTermsTab');
                     if (billingTabTrigger) {
                         const tab = new bootstrap.Tab(billingTabTrigger);
@@ -610,12 +678,9 @@ class FormsPage {
                 if (editScheduleRaw) {
                     try {
                         const schedule = JSON.parse(editScheduleRaw);
-                        // Wait a tick to ensure fields are present
                         setTimeout(() => {
                             const form = document.getElementById('clientForm');
                             if (!form) return;
-
-                            // Fill billing fields if present on schedule
                             if (schedule.billing_frequency) form.querySelector('[name="billing_frequency"]').value = schedule.billing_frequency;
                             if (schedule.billing_amount) form.querySelector('[name="billing_amount"]').value = schedule.billing_amount;
                             if (schedule.tax_rate) form.querySelector('[name="tax_rate"]').value = schedule.tax_rate;
@@ -630,70 +695,59 @@ class FormsPage {
                             if (schedule.reminder_days_before) form.querySelector('[name="reminder_days"]').value = schedule.reminder_days_before;
                             if (schedule.bill_description) form.querySelector('[name="bill_description"]').value = schedule.bill_description;
 
-                            // If schedule has items and a product_id is present, select it
-                            try {
-                                const items = schedule.items || [];
-                                if (items.length > 0) {
-                                    const first = items[0];
-                                    if (first.product_id) {
-                                        const sel = document.getElementById('billing-product-select');
-                                        if (sel) sel.value = first.product_id;
-                                        // trigger change to set amount/tax/description from product
-                                        sel && sel.dispatchEvent(new Event('change'));
-                                    }
+                            const items = schedule.items || [];
+                            if (items.length > 0) {
+                                const first = items[0];
+                                if (first.product_id) {
+                                    const sel = document.getElementById('billing-product-select');
+                                    if (sel) sel.value = first.product_id;
+                                    sel && sel.dispatchEvent(new Event('change'));
                                 }
-                            } catch (e) {
-                                // ignore
                             }
-
-                            // Once used, keep editSchedule if you want user to submit changes; do NOT auto-remove here.
                         }, 120);
                     } catch (e) {
                         console.error('Failed to parse editSchedule:', e);
                     }
                 }
 
-            }, 100);
-        }
+                // Prefill client edit
+                const editClientRaw = localStorage.getItem('editClient');
+                if (editClientRaw) {
+                    try {
+                        const client = JSON.parse(editClientRaw);
+                        setTimeout(() => {
+                            const form = document.getElementById('clientForm');
+                            if (!form) return;
+                            let input = form.querySelector('input[name="client_id"]');
+                            if (!input) {
+                                input = document.createElement('input');
+                                input.type = 'hidden';
+                                input.name = 'client_id';
+                                form.prepend(input);
+                            }
+                            input.value = client.client_id || '';
 
-        // Prefill edit forms for client/invoice/receipt if present (existing logic)
-        try {
-            // Prefill client edit if present
-            if (this.currentForm === 'client-form') {
-                const edit = localStorage.getItem('editClient');
-                if (edit) {
-                    const client = JSON.parse(edit);
-                    const form = document.getElementById('clientForm');
-                    if (form) {
-                        let input = form.querySelector('input[name="client_id"]');
-                        if (!input) {
-                            input = document.createElement('input');
-                            input.type = 'hidden';
-                            input.name = 'client_id';
-                            form.prepend(input);
-                        }
-                        input.value = client.client_id || '';
-
-                        Object.keys(client).forEach(k => {
-                            try {
-                                const el = form.querySelector(`[name="${k}"]`);
-                                if (!el) return;
-                                if (el.tagName === 'SELECT') {
-                                    el.value = client[k] || '';
-                                } else if (el.type === 'checkbox' || el.type === 'radio') {
-                                    el.checked = !!client[k];
-                                } else {
-                                    el.value = Array.isArray(client[k]) ? client[k].join(',') : (client[k] != null ? client[k] : '');
-                                }
-                            } catch (e) {}
-                        });
+                            Object.keys(client).forEach(k => {
+                                try {
+                                    const el = form.querySelector(`[name="${k}"]`);
+                                    if (!el) return;
+                                    if (el.tagName === 'SELECT') {
+                                        el.value = client[k] || '';
+                                    } else if (el.type === 'checkbox' || el.type === 'radio') {
+                                        el.checked = !!client[k];
+                                    } else {
+                                        el.value = Array.isArray(client[k]) ? client[k].join(',') : (client[k] != null ? client[k] : '');
+                                    }
+                                } catch (e) {}
+                            });
+                        }, 120);
+                    } catch (e) {
+                        console.error('editClient parse failed', e);
                     }
-                    localStorage.removeItem('editClient');
+                    // keep removal to after user submits or navigates
                 }
-            }
 
-            // Prefill invoice form if editing
-            if (this.currentForm === 'invoice-form') {
+                // Prefill invoice edit
                 const editInv = localStorage.getItem('editInvoice');
                 if (editInv) {
                     const invoice = JSON.parse(editInv);
@@ -752,12 +806,9 @@ class FormsPage {
                             this.calculateInvoiceTotal();
                         }
                     }, 150);
-                    localStorage.removeItem('editInvoice');
                 }
-            }
 
-            // Prefill receipt form if editing
-            if (this.currentForm === 'receipt-form') {
+                // Prefill receipt edit
                 const editR = localStorage.getItem('editReceipt');
                 if (editR) {
                     const receipt = JSON.parse(editR);
@@ -777,15 +828,12 @@ class FormsPage {
                         const notes = document.getElementById('receipt-notes');
                         if (notes) notes.value = receipt.notes || '';
                     }, 100);
-                    localStorage.removeItem('editReceipt');
                 }
-            }
 
-        } catch (e) {
-            console.error('Forms initialize error:', e);
-        }
-        
-        console.log('Forms page initialized');
+            } catch (e) {
+                console.error('Forms initialize error:', e);
+            }
+        }, 120);
     }
 }
 
